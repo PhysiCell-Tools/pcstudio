@@ -1,0 +1,189 @@
+Using config file template_tmpdir.xml ... 
+1
+dc? 1
+User parameters in XML config file: 
+Bool parameters:: 
+
+Int parameters:: 
+random_seed: 0 [dimensionless]
+number_of_cells: 0 [none]
+
+Double parameters:: 
+
+String parameters:: 
+
+
+which boundaries?
+1 1 1 1 1 1
+
+Microenvironment summary: microenvironment: 
+
+Mesh information: 
+type: uniform Cartesian
+Domain: [-500,500] micron x [-500,500] micron x [-10,10] micron
+   resolution: dx = 20 micron
+   voxels: 2500
+   voxel faces: 0
+   volume: 2e+07 cubic micron
+Densities: (1 total)
+   substrate:
+     units: dimensionless
+     diffusion coefficient: 100000 micron^2 / min
+     decay rate: 10 min^-1
+     diffusion length scale: 100 micron
+     initial condition: 0 dimensionless
+     boundary condition: 0 dimensionless (enabled: true)
+
+Pre-processing type 0 named default
+Processing default ... 
+Note: setting cell definition to 2D based on microenvironment domain settings ... 
+  --------- attachment_elastic_constant = 0.01
+Signals: 
+=======
+0 : substrate
+1 : intracellular substrate
+2 : substrate gradient
+3 : pressure
+4 : volume
+5 : contact with default
+6 : contact with live cell
+7 : contact with dead cell
+8 : contact with basement membrane
+9 : damage
+10 : dead
+11 : total attack time
+12 : time
+13 : custom:sample
+
+
+Behaviors: 
+=========
+0 : substrate secretion
+1 : substrate secretion target
+2 : substrate uptake
+3 : substrate export
+4 : cycle entry
+5 : exit from cycle phase 1
+6 : exit from cycle phase 2
+7 : exit from cycle phase 3
+8 : exit from cycle phase 4
+9 : exit from cycle phase 5
+10 : apoptosis
+11 : necrosis
+12 : migration speed
+13 : migration bias
+14 : migration persistence time
+15 : chemotactic response to substrate
+16 : cell-cell adhesion
+17 : cell-cell adhesion elastic constant
+18 : adhesive affinity to default
+19 : relative maximum adhesion distance
+20 : cell-cell repulsion
+21 : cell-BM adhesion
+22 : cell-BM repulsion
+23 : phagocytose dead cell
+24 : phagocytose default
+25 : attack default
+26 : fuse to default
+27 : transform to default
+28 : custom:sample
+
+
+Loading rules from CSV file data/template_rules.csv ... 
+Processing rules in file data/template_rules.csv ... 
+Adding rule for default cells:
+	pressure decreases cycle entry from 1.e-5 towards 0. with a Hill response, with half-max 2. and Hill power 4.
+Done!
+
+0 :: type:0 name: default
+	 cycle model: Flow cytometry model (separated) (code=6)
+		Phase 0: G0/G1
+		Phase 1: S
+		Phase 2: G2
+		Phase 3: M
+		Cycle transitions: 
+		-----------------
+		G0/G1 --> S w mean duration 300 min
+		S --> G2 w mean duration 480 min
+		G2 --> M w mean duration 240 min
+		M --> G0/G1 w mean duration 60 min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 5.31667e-05 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 516 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1e-16 min
+		Necrotic (lysed) --> Debris w mean duration 86400 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: true
+		 phenotype rule: true
+		 volume update function: true
+		 mechanics function: true
+		 contact function: true
+	motility (enabled: false in 2D)
+		speed: 1 micron/min
+		bias: 0.5 
+		persistence time: 1 min
+		chemotaxis (enabled: false)
+			along 1 * grad(substrate) 
+	mechanics:
+		cell_cell_adhesion_strength: 0.4
+		cell_cell_repulsion_strength: 10
+		rel max adhesion dist: 1.25
+		cell_BM_adhesion_strength: 4
+		cell_BM_repulsion_strength: 10
+		attachment_elastic_constant: 0.01
+		attachment_rate: 10
+		detachment_rate: 0
+	custom data: 
+		sample: 1 dimensionless
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+Behavioral rules for cell type default:
+===================================================
+pressure decreases cycle entry
+
+Placing 0 cells of type default ... 
+
+Loading cells from CSV file ../cells.csv ... 
+Creating default (type=0) at -81.2695 -285.429 0 
+Creating default (type=0) at -64.4441 -285.429 0 
+...
+Creating default (type=0) at 36.5084 297.421 0 
+Using PhysiCell version 1.10.4
+	Please cite DOI: 10.1371/journal.pcbi.1005991
+	Project website: http://PhysiCell.MathCancer.org
+
+See ALL_CITATIONS.txt for this list.
+Cell Hypothesis Rules
+
+In default cells:
+pressure decreases cycle entry
+
+current simulated time: 0 min (max: 1440 min)
+total agents: 1149
+interval wall time: 0 days, 0 hours, 0 minutes, and 1.9e-05 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 2.3e-05 seconds 
+
+
+Using method diffusion_decay_solver__constant_coefficients_LOD_2D (2D LOD with Thomas Algorithm) ... 
+
+current simulated time: 60 min (max: 1440 min)
+total agents: 1149
+interval wall time: 0 days, 0 hours, 0 minutes, and 1.25086 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 1.25089 seconds 
+
+current simulated time: 120 min (max: 1440 min)
+total agents: 1149
+interval wall time: 0 days, 0 hours, 0 minutes, and 1.25675 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 2.50764 seconds 
+
+current simulated time: 180 min (max: 1440 min)
+total agents: 1149
+interval wall time: 0 days, 0 hours, 0 minutes, and 1.25893 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 3.76658 seconds 
+

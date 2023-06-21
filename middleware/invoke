@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/usr/bin/invoke_app "$@" -C "python @tool/bin/studio.py --nanohub --rules" -t pcstudio -e TOOLPATH=@tool -u anaconda3-5.1

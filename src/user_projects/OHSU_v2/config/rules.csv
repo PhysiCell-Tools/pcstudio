@@ -1,0 +1,19 @@
+tumor cell,cycle entry,0,1.70E-05,7.00E-04,oxygen,increases,21.5,4,0
+tumor cell,cycle entry,0,1.70E-05,7.00E-04,pressure,decreases,0.25,3,0
+tumor cell,debris secretion,0,0.00E+00,1.00E+00,dead,increases,0.1,10,1
+tumor cell,necrosis,0,2.80E-03,0.00E+00,oxygen,decreases,3.75,8,0
+tumor cell,apoptosis,0.00E+00,5.32E-05,5.32E-03,damage,increases,180,2,0
+tumor cell,migration speed,0,1.00E+00,1.00E+00,IFN-gamma,decreases,0.5,3,0
+M0 macrophage,transform to M1 macrophage,0,0,1.00E-01,contact with dead cell,increases,0.1,10,0
+M1 macrophage,phagocytose dead cell,0,1.00E-03,1.00E-01,IFN-gamma,increases,0.5,3,0
+M1 macrophage,cycle entry,0,7.00E-05,7.00E-04,IFN-gamma,increases,0.5,3,0
+M2 macrophage,phagocytose dead cell,0,1.00E-03,1.00E-01,IFN-gamma,increases,0.5,3,0
+M2 macrophage,cycle entry,0,7.00E-05,7.00E-04,IFN-gamma,decreases,0.5,3,0
+M1 macrophage,transform to M2 macrophage,0,1.00E-01,1.00E-01,oxygen,decreases,5,4,0
+naive T cell,transform to CD8 T cell,0,0.00E+00,1.00E-02,IFN-gamma,increases,0.5,3,0
+CD8 T cell,cycle entry,0,7.00E-05,7.00E-04,IFN-gamma,increases,0.5,3,0
+immature dendritic cell,transform to mature dendritic cell,0,0.00E+00,1.00E-02,contact with tumor cell,increases,0.5,3,0
+immature dendritic cell,transform to mature dendritic cell,0,0.00E+00,1.00E-02,IL-10,decreases,0.5,3,0
+immature dendritic cell,apoptosis,0,7.00E-05,7.00E-03,IFN-gamma,increases,0.5,3,0
+mature dendritic cell,apoptosis,0,7.00E-05,7.00E-03,IFN-gamma,increases,0.5,3,0
+mature dendritic cell,custom:IL12,0,1.00E+00,1.00E+00,IL-10,decreases,0.5,3,0

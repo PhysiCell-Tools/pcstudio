@@ -1,2 +1,4 @@
 # pcstudio
-pcstudio is a repo for the online nanoHUB app 
+
+PhysiCell Studio app using Qt Studio GUI.
+
