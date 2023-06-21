@@ -305,6 +305,8 @@ class PhysiCellXMLCreator(QWidget):
 
         if self.debug_flag:
             self.debug_tab = Debug()
+        else:
+            self.debug_tab = None
 
         self.config_tab = Config(self.studio_flag)
         self.config_tab_index = 0
@@ -532,21 +534,20 @@ class PhysiCellXMLCreator(QWidget):
             #     self.legend_tab.reload_legend()
 
             if self.debug_flag:
-                # self.debug_tab = Debug()
-                self.tabWidget.addTab(self.debug_tab,"Debug")
+                # self.tabWidget.addTab(self.debug_tab,"Debug")   # rwh: disable for "production" app
                 self.run_tab.debug_tab = self.debug_tab
                 self.vis_tab.debug_tab = self.debug_tab
 
-                self.debug_tab.add_msg("--- studio.py: self.current_dir = "+self.current_dir )
+                self.debug_msg("--- studio.py: self.current_dir = "+self.current_dir )
                 # ~l.330
-                self.debug_tab.add_msg(" studio.py: self.absolute_data_dir is "+self.absolute_data_dir)
-                self.debug_tab.add_msg(" studio.py: self.rules_tab.rules_folder.text() is "+self.rules_tab.rules_folder.text())
+                self.debug_msg(" studio.py: self.absolute_data_dir is "+self.absolute_data_dir)
+                self.debug_msg(" studio.py: self.rules_tab.rules_folder.text() is "+self.rules_tab.rules_folder.text())
 
-                self.debug_tab.add_msg(" studio.py: self.home_dir is "+self.home_dir)
+                self.debug_msg(" studio.py: self.home_dir is "+self.home_dir)
                 if self.nanohub_flag:
                     try:
                         toolpath = os.environ['TOOLPATH']
-                        self.debug_tab.add_msg(" studio.py: TOOLPATH is "+toolpath)
+                        self.debug_msg(" studio.py: TOOLPATH is "+toolpath)
                     except:
                         print("studio.py: unable to get TOOLPATH")
 
@@ -1057,8 +1058,14 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         msg.exec_()
 
 
+    def debug_msg(self,msg):
+        if self.debug_tab is None:
+            return
+        else:
+            self.debug_tab.add_msg(msg)
+
     def load_model(self,name):
-        self.debug_tab.add_msg("studio.py:  load_model() ------------")
+        self.debug_msg("studio.py:  load_model() ------------")
         if self.studio_flag:
             self.run_tab.cancel_model_cb()  # if a sim is already running, cancel it
             self.vis_tab.physiboss_vis_checkbox = None    # default: assume a non-boolean intracellular model
@@ -1067,7 +1074,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 self.vis_tab.physiboss_vis_checkbox.setChecked(False)
 
 
-        self.debug_tab.add_msg("    load_model(): chdir to "+self.current_dir)
+        self.debug_msg("    load_model(): chdir to "+self.current_dir)
         os.chdir(self.current_dir)  # just in case we were in /tmpdir (and it crashed/failed, leaving us there)
 
         # self.studio_config_dir = the tool dir (/apps/pcstudio/r63/data)
