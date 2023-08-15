@@ -412,6 +412,7 @@ class PhysiCellXMLCreator(QWidget):
             # self.rules_tab.fill_gui()
             self.tabWidget.addTab(self.rules_tab,"Rules")
             self.rules_tab.xml_root = self.xml_root
+            self.microenv_tab.rules_tab = self.rules_tab
             self.celldef_tab.rules_tab = self.rules_tab
             if self.nanohub_flag:
                 self.rules_tab.absolute_data_dir = self.absolute_data_dir
@@ -576,6 +577,7 @@ class PhysiCellXMLCreator(QWidget):
             self.microenv_tab.update_3D()
 
         elif self.rules_tab_index and (index == self.rules_tab_index): 
+            self.rules_tab.update_base_value()
             if self.rules_tab.update_rules_for_custom_data:
                 print("studio.py: need to update Rules comboboxes for changed custom data")
                 self.rules_tab.fill_signals_widget()

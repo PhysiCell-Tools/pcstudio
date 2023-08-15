@@ -54,6 +54,8 @@ class Config(QWidget):
 
         self.xml_root = None
 
+        self.sync_output = True
+
         qlineedit_style = """
         QLineEdit: disabled {
             background-color:#ff0000;
@@ -318,6 +320,7 @@ class Config(QWidget):
         self.svg_interval = QLineEdit()
         self.svg_interval.setFixedWidth(100)
         self.svg_interval.setValidator(QtGui.QDoubleValidator())
+        self.svg_interval.textChanged.connect(self.svg_interval_changed)
         icol += 1
         # self.config_tab_layout.addWidget(self.svg_interval, idx_row,icol,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(self.svg_interval)
@@ -345,6 +348,7 @@ class Config(QWidget):
         self.full_interval = QLineEdit()
         self.full_interval.setFixedWidth(100)
         self.full_interval.setValidator(QtGui.QDoubleValidator())
+        self.full_interval.textChanged.connect(self.full_interval_changed)
         icol += 1
         # self.config_tab_layout.addWidget(self.full_interval, idx_row,icol,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(self.full_interval)
@@ -354,6 +358,17 @@ class Config(QWidget):
         # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(label)
 
+        #------
+        label = QLabel("      ")
+        hbox.addWidget(label)
+
+        self.sync_svg_mat = QCheckBox_custom("Sync")
+        self.sync_svg_mat.setFixedWidth(cbox_width)
+        self.sync_svg_mat.setChecked(self.sync_output)
+        self.sync_svg_mat.clicked.connect(self.sync_clicked)
+        hbox.addWidget(self.sync_svg_mat)
+
+        #------
         hbox.addStretch()
         vbox.addLayout(hbox)
 
@@ -484,12 +499,31 @@ class Config(QWidget):
         else:
             self.svg_interval.setStyleSheet("background-color: lightgray; color: black")
 
+    def svg_interval_changed(self, val):
+        # print("svg_interval_changed(): val=",val)
+        if self.sync_output:
+            self.full_interval.setText(val)
+
     def full_clicked(self, bval):
         self.full_interval.setEnabled(bval)
         if bval:
             self.full_interval.setStyleSheet("background-color: white; color: black")
         else:
             self.full_interval.setStyleSheet("background-color: lightgray; color: black")
+
+    def full_interval_changed(self, val):
+        # print("full_interval_changed(): val=",val)
+        if self.sync_output:
+            self.svg_interval.setText(val)
+
+    def sync_clicked(self, bval):
+        self.sync_output = bval
+
+        if bval:
+            if self.save_svg.isChecked():
+                self.full_interval.setText(self.svg_interval.text())
+            else:
+                self.svg_interval.setText(self.full_interval.text())
 
     def cells_csv_clicked(self, bval):
         self.csv_folder.setEnabled(bval)

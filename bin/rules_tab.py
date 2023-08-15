@@ -887,6 +887,14 @@ class Rules(QWidget):
         self.fill_responses_widget()
 
     #-----------------------------------------------------------
+    def delete_substrate(self,name):
+        # print(f"-------- rules_tab.py: delete_substrate(), self.substrates = {self.substrates}")
+        # print(f"     name = {name}")
+        self.substrates.remove(name)
+        self.fill_signals_widget()
+        self.fill_responses_widget()
+
+    #-----------------------------------------------------------
     def add_new_substrate(self,name):
         # print("rules_tab: add_new_substrate(): name= ",name)
         self.substrates.append(name)
@@ -946,7 +954,7 @@ class Rules(QWidget):
         # self.response_l += ["apoptosis","necrosis","migration speed","migration bias","migration persistence time"]
 
     def update_base_value(self):
-        print("\n-------update_base_value(self)")
+        # print("\n-------update_base_value(self)")
         behavior = self.response_combobox.currentText()
         # key0 = self.celltype_name
         key0 = self.celltype_combobox.currentText()
@@ -956,8 +964,32 @@ class Rules(QWidget):
             return
 
         base_val = '??'
-        if btokens[0] in self.substrates:
-            print(f"{btokens[0]} is a substrate")
+        if btokens[0] in ["cycle", "exit"]:
+            cycle_model_idx = self.celldef_tab.param_d[key0]['cycle_choice_idx']
+            # print(behavior, cycle_model_idx )
+            #{0:"live", 1:"basic Ki67", 2:"advanced Ki67", 3:"flow cytometry", 4:"Flow cytometry model (separated)", 5:"cycling quiescent"}
+            if (behavior == 'cycle entry' or behavior == 'exit from cycle phase 0'):
+                if cycle_model_idx == 0 : base_val = self.celldef_tab.param_d[key0]['cycle_live_trate00']
+                elif cycle_model_idx == 1 : base_val = self.celldef_tab.param_d[key0]['cycle_Ki67_trate01']
+                elif cycle_model_idx == 2 : base_val = self.celldef_tab.param_d[key0]['cycle_advancedKi67_trate01']
+                elif cycle_model_idx == 3 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcyto_trate01']
+                elif cycle_model_idx == 4 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcytosep_trate01']
+                elif cycle_model_idx == 5 : base_val = self.celldef_tab.param_d[key0]['cycle_quiescent_trate01']
+            elif (behavior == 'exit from cycle phase 1'):
+                if cycle_model_idx == 1 : base_val = self.celldef_tab.param_d[key0]['cycle_Ki67_trate10']
+                elif cycle_model_idx == 2 : base_val = self.celldef_tab.param_d[key0]['cycle_advancedKi67_trate12']
+                elif cycle_model_idx == 3 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcyto_trate12']
+                elif cycle_model_idx == 4 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcytosep_trate12']
+                elif cycle_model_idx == 5 : base_val = self.celldef_tab.param_d[key0]['cycle_quiescent_trate10']
+            elif (behavior == 'exit from cycle phase 2'):
+                if cycle_model_idx == 2 : base_val = self.celldef_tab.param_d[key0]['cycle_advancedKi67_trate20']
+                elif cycle_model_idx == 3 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcyto_trate20']
+                elif cycle_model_idx == 4 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcytosep_trate23']
+            elif (behavior == 'exit from cycle phase 3'):
+                if cycle_model_idx == 4 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcytosep_trate30']
+                        
+        elif btokens[0] in self.substrates:
+            print(f"update_base_value(): {btokens[0]} is a substrate")
             # key1 = btokens[0]
             key1 = 'secretion'
             key2 = btokens[0]
@@ -974,13 +1006,11 @@ class Rules(QWidget):
                 # print("\n---key1= ",self.celldef_tab.param_d[key0][key1])
                 # print("\n---key2= ",self.celldef_tab.param_d[key0][key1][key2])
                 base_val = self.celldef_tab.param_d[key0][key1][key2][key3]
-                print("------- base_val= ",base_val)
+                print("update_base_value(): ------- base_val= ",base_val)
             except:
-                print("---- got exception")
+                print("update_base_value(): ---- got exception")
                 return
         elif btokens[0] == 'apoptosis':
-            print("---- update_base_value(): key0=",key0)
-            print("\n self.celldef_tab.param_d[key0]",self.celldef_tab.param_d[key0])
             base_val = self.celldef_tab.param_d[key0]['apoptosis_death_rate']
         elif btokens[0] == 'necrosis':
             base_val = self.celldef_tab.param_d[key0]['necrosis_death_rate']
@@ -1035,19 +1065,27 @@ class Rules(QWidget):
         elif behavior[0:len("transform to")] == "transform to":
             cell_type = behavior[len("transform to")+1:]
             base_val = self.celldef_tab.param_d[key0]['transformation_rate'][cell_type]
-            
+        elif behavior == "damage rate":
+            base_val = self.celldef_tab.param_d[key0]["damage_rate"]
+        elif "custom:" in btokens[0]:
+            custom_data_name = btokens[0].split(':')[-1] # return string after colon
+            print(custom_data_name, self.celldef_tab.param_d[key0]['custom_data'][custom_data_name])
+            base_val = self.celldef_tab.param_d[key0]['custom_data'][custom_data_name][0]
 
         #---------------------
         # Set the base value 
         self.rule_base_val.setText(base_val)
 
-        # Compute/set the saturation value 
+        # Compute/set the saturation value
         if base_val == '??':
-            saturation_val = 1.0
+            if "decreases" in self.up_down_combobox.currentText(): saturation_val = 0.0
+            else: saturation_val = 1.0
         else:
-            saturation_val = self.scale_base_for_max * float(base_val)
-            if abs(saturation_val) < 1.e-9:
-                saturation_val = 1.0
+            if "decreases" in self.up_down_combobox.currentText(): saturation_val = self.scale_base_for_min * float(base_val)
+            else: saturation_val = self.scale_base_for_max * float(base_val)
+            # behaviors with max response
+            if ( behavior == 'migration bias' and saturation_val > 1 ): saturation_val = 1.0
+            if ( behavior == 'is_movable' and saturation_val > 1 ): saturation_val = 1.0
         self.rule_max_val.setText(str(saturation_val))
 
         # print(self.celldef_tab.param_d.keys())
