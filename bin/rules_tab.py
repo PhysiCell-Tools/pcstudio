@@ -161,6 +161,7 @@ class Rules(QWidget):
         self.signal = None
         self.behavior = None
         self.scale_base_for_max = 2.0
+        self.scale_base_for_min = 0.1
 
         self.max_rule_table_rows = 99
 
