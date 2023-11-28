@@ -1398,7 +1398,11 @@ class Rules(QWidget):
         # v2 synax:
         # cell type, signal, increases/decreases,behavior, param value at max response, half max, hill power, applies to dead?
 
-        self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_combobox.currentText() )
+        try:
+            self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_combobox.currentText() )
+        except:
+            print(f"------- add_rule_cb(): exception: irow={irow}, self.rules_celltype_idx={self.rules_celltype_idx}")
+            return
         self.rules_table.cellWidget(irow, self.rules_signal_idx).setText( self.signal_combobox.currentText() )
         self.rules_table.cellWidget(irow, self.rules_direction_idx).setText( self.up_down_combobox.currentText() )
         self.rules_table.cellWidget(irow, self.rules_response_idx).setText( self.response_combobox.currentText() )  # behavior
@@ -1564,8 +1568,11 @@ class Rules(QWidget):
             # print("---- decrement wrow in irow=",irow)
             # self.rules_celltype_idx = 0
             # self.rules_response_idx = 1
-            self.rules_table.cellWidget(irow,self.rules_celltype_idx).wrow -= 1  # sufficient to only decr the "name" column
-
+            try:
+                self.rules_table.cellWidget(irow,self.rules_celltype_idx).wrow -= 1  # sufficient to only decr the "name" column
+            except:
+                print("\n--rules_tab.py: delete_rule_cb(): got exception decrementing row.")
+                print(f"       irow={irow}, self.rules_celltype_idx={self.rules_celltype_idx}")
             # print(f"   after removing {varname}, master_custom_var_d= ",self.master_custom_var_d)
 
         self.rules_table.removeRow(row)
@@ -1574,6 +1581,8 @@ class Rules(QWidget):
         # self.enable_all_custom_data()
 
         self.num_rules -= 1
+        if self.num_rules < 0:
+            self.num_rules = 0
 
         # print(" 2)master_custom_var_d= ",self.master_custom_var_d)
         # print("------------- LEAVING  delete_custom_data_cb")
