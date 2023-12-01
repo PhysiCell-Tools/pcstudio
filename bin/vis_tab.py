@@ -887,12 +887,16 @@ class Vis(VisBase, QWidget):
             ygrid = M[1, :].reshape(self.numy, self.numx)
         except:
             # print("error: cannot reshape ",self.numy, self.numx," for array ",M.shape)
-            print("vis_tab.py: unable to reshape substrate array; return")
+            print("vis_tab.py: unable to reshape substrate xgrid or ygrid array; return")
             return
 
-        zvals = M[self.field_index,:].reshape(self.numy,self.numx)
-        # print("zvals.min() = ",zvals.min())
-        # print("zvals.max() = ",zvals.max())
+        try:
+            zvals = M[self.field_index,:].reshape(self.numy,self.numx)
+            # print("zvals.min() = ",zvals.min())
+            # print("zvals.max() = ",zvals.max())
+        except:
+            print("vis_tab.py: unable to reshape substrate zvals array; return")
+            return
 
 
         contour_ok = True
