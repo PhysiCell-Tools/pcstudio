@@ -302,7 +302,7 @@ void Cycle_Model::advance_model( Cell* pCell, Phenotype& phenotype, double dt )
 			bool continue_transition = false; 
 			if( phase_links[i][k].fixed_duration )
 			{
-				if( phenotype.cycle.data.elapsed_time_in_phase > 1.0/phenotype.cycle.data.transition_rates[i][k] )
+				if( phenotype.cycle.data.elapsed_time_in_phase > ((1.0/phenotype.cycle.data.transition_rates[i][k]) - 0.5 * dt) )
 				{
 					continue_transition = true; 
 				}
@@ -678,7 +678,7 @@ Mechanics::Mechanics()
 	cell_BM_adhesion_strength = 4.0;
 	
 	cell_cell_repulsion_strength = 10.0; 
-	cell_BM_repulsion_strength = 10.0; 
+	cell_BM_repulsion_strength = 100.0; 
 
 	cell_adhesion_affinities = {1}; 
 	
@@ -1141,6 +1141,8 @@ void Molecular::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 
 Cell_Functions::Cell_Functions()
 {
+	instantiate_cell = NULL;
+	
 	volume_update_function = NULL; 
 	update_migration_bias = NULL; 
 	

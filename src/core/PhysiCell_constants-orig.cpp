@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2022, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -65,47 +65,51 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_MultiCellDS_h__
-#define __PhysiCell_MultiCellDS_h__
-
-#include <iostream>
-#include <sstream>
-#include <ctime>
-#include <cmath>
-#include <string>
-#include <vector>
-#include <random>
-#include <chrono>
-
-#include "../core/PhysiCell.h"
-#include "../BioFVM/BioFVM_MultiCellDS.h"
+#include "PhysiCell_constants.h" 
 
 namespace PhysiCell{
 
-void add_PhysiCell_cell_to_open_xml_pugi(  pugi::xml_document& xml_dom, Cell& C ); // not implemented -- future edition 
-void add_PhysiCell_cells_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void add_PhysiCell_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
+std::string time_units = "min";
+std::string space_units = "micron";
+double diffusion_dt = 0.01; 
+double mechanics_dt = 0.1;
+double phenotype_dt = 6.0;
+double intracellular_dt = 0.01;
 
+std::unordered_map<std::string,int> cycle_model_codes = 
+{
+	{ "Ki67 (advanced)", PhysiCell_constants::advanced_Ki67_cycle_model}, 
+	{ "Ki67 (basic)" ,PhysiCell_constants::basic_Ki67_cycle_model},
+	{ "Flow cytometry model (basic)",PhysiCell_constants::flow_cytometry_cycle_model},
+	// { ,PhysiCell_constants::live_apoptotic_cycle_model}, // not implemented 
+	// { ,PhysiCell_constants::total_cells_cycle_model}, // not implemented 
+	{ "Live",PhysiCell_constants::live_cells_cycle_model}, 
+	{ "Flow cytometry model (separated)",PhysiCell_constants::flow_cytometry_separated_cycle_model}, 
+	{ "Cycling-Quiescent model",PhysiCell_constants::cycling_quiescent_model}, 
 	
-void save_PhysiCell_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time); 
-
-
-/* V2 functions */ 
-
-/*
-void add_PhysiCell_cell_to_open_xml_pugi_v2(  pugi::xml_document& xml_dom, Cell& C ); // not implemented -- future edition 
-void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void add_PhysiCell_to_open_xml_pugi_v2( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
+	// currently recognized death models 
+	{ "Apoptosis",PhysiCell_constants::apoptosis_death_model}, 
+	{ "Necrosis",PhysiCell_constants::necrosis_death_model} , 
+	// { ,PhysiCell_constants::autophagy_death_model}, // not implemented 
 	
-void save_PhysiCell_to_MultiCellDS_xml_pugi_v2( std::string filename_base , Microenvironment& M , double current_simulation_time); 
-*/
+	{ "ki67 (advanced)", PhysiCell_constants::advanced_Ki67_cycle_model}, 
+	{ "ki67 (basic)" ,PhysiCell_constants::basic_Ki67_cycle_model},
+	{ "flow cytometry model (basic)",PhysiCell_constants::flow_cytometry_cycle_model},
+	{ "live",PhysiCell_constants::live_cells_cycle_model}, 
+	{ "flow cytometry model (separated)",PhysiCell_constants::flow_cytometry_separated_cycle_model}, 
+	{ "cycling-quiescent model",PhysiCell_constants::cycling_quiescent_model}, 
+	{ "apoptosis",PhysiCell_constants::apoptosis_death_model}, 
+	{ "necrosis",PhysiCell_constants::necrosis_death_model} 
+	
+}; 
 
-void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void save_PhysiCell_to_MultiCellDS_v2( std::string filename_base , Microenvironment& M , double current_simulation_time);
-void write_neighbor_graph( std::string filename ); 
-void write_attached_cells_graph( std::string filename ); 
-void write_spring_attached_cells_graph( std::string filename ); 
+int find_cycle_model_code( std::string model_name )
+{
+	auto search = cycle_model_codes.find( model_name );
+	if( search == cycle_model_codes.end() )
+	{ return -1; }
+	else
+	{ return search->second; }
+}
 
 };
-
-#endif

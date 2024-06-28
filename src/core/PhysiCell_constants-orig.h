@@ -65,46 +65,102 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_MultiCellDS_h__
-#define __PhysiCell_MultiCellDS_h__
+#ifndef __PhysiCell_constants_h__
+#define __PhysiCell_constants_h__
 
-#include <iostream>
-#include <sstream>
-#include <ctime>
-#include <cmath>
 #include <string>
-#include <vector>
-#include <random>
-#include <chrono>
+#include <unordered_map>
 
-#include "../core/PhysiCell.h"
-#include "../BioFVM/BioFVM_MultiCellDS.h"
-
-namespace PhysiCell{
-
-void add_PhysiCell_cell_to_open_xml_pugi(  pugi::xml_document& xml_dom, Cell& C ); // not implemented -- future edition 
-void add_PhysiCell_cells_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void add_PhysiCell_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
-
+namespace PhysiCell
+{
 	
-void save_PhysiCell_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time); 
-
-
-/* V2 functions */ 
-
-/*
-void add_PhysiCell_cell_to_open_xml_pugi_v2(  pugi::xml_document& xml_dom, Cell& C ); // not implemented -- future edition 
-void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void add_PhysiCell_to_open_xml_pugi_v2( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
+class PhysiCell_constants
+{
+ public:
+	static constexpr double pi=3.1415926535897932384626433832795;
 	
-void save_PhysiCell_to_MultiCellDS_xml_pugi_v2( std::string filename_base , Microenvironment& M , double current_simulation_time); 
-*/
+	static constexpr double cell_removal_threshold_volume = 20; // 20 cubic microns -- about 1% of typical cell 
+	static const int keep_pushed_out_cells_in_outer_voxel=1;
+	static const int solid_boundary = 2;
+	static const int default_boundary_condition_for_pushed_out_agents = keep_pushed_out_cells_in_outer_voxel;		
+	
+	static const int deterministic_necrosis = 0;
+	static const int stochastic_necrosis = 1;
+	
+	static const int mesh_min_x_index=0;
+	static const int mesh_min_y_index=1;
+	static const int mesh_min_z_index=2;
+	static const int mesh_max_x_index=3;
+	static const int mesh_max_y_index=4;
+	static const int mesh_max_z_index=5;			
+	
+	static const int mesh_lx_face_index=0;
+	static const int mesh_ly_face_index=1;
+	static const int mesh_lz_face_index=2;
+	static const int mesh_ux_face_index=3;
+	static const int mesh_uy_face_index=4;
+	static const int mesh_uz_face_index=5;
+	
+	// currently recognized cell cycle models 
+	static const int advanced_Ki67_cycle_model= 0;
+	static const int basic_Ki67_cycle_model=1;
+	static const int flow_cytometry_cycle_model=2;
+	static const int live_apoptotic_cycle_model=3;
+	static const int total_cells_cycle_model=4;
+	static const int live_cells_cycle_model = 5; 
+	static const int flow_cytometry_separated_cycle_model = 6; 
+	static const int cycling_quiescent_model = 7; 
+	
+	// currently recognized death models 
+	static const int apoptosis_death_model = 100; 
+	static const int necrosis_death_model = 101; 
+	static const int autophagy_death_model = 102; 
+	
+	static const int custom_cycle_model=9999; 
+	
+	// currently recognized cell cycle and death phases 
+	// cycle phases
+	static const int Ki67_positive_premitotic=0; 
+	static const int Ki67_positive_postmitotic=1; 
+	static const int Ki67_positive=2; 
+	static const int Ki67_negative=3; 
+	static const int G0G1_phase=4;
+	static const int G0_phase=5;
+	static const int G1_phase=6; 
+	static const int G1a_phase=7; 
+	static const int G1b_phase=8;
+	static const int G1c_phase=9;
+	static const int S_phase=10;
+	static const int G2M_phase=11;
+	static const int G2_phase=12;
+	static const int M_phase=13;
+	static const int live=14;
+	
+	static const int G1pm_phase = 15;
+	static const int G1ps_phase = 16; 
+	
+	static const int cycling = 17; 
+	static const int quiescent = 18; 
+	
+	
+	static const int custom_phase = 9999;
+	// death phases
+	static const int apoptotic=100;
+	static const int necrotic_swelling=101;
+	static const int necrotic_lysed=102;
+	static const int necrotic=103; 
+	static const int debris=104; 
+};
+extern std::string time_units;
+extern std::string space_units;
+extern double diffusion_dt; 
+extern double mechanics_dt;
+extern double phenotype_dt;
+extern double intracellular_dt;
 
-void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void save_PhysiCell_to_MultiCellDS_v2( std::string filename_base , Microenvironment& M , double current_simulation_time);
-void write_neighbor_graph( std::string filename ); 
-void write_attached_cells_graph( std::string filename ); 
-void write_spring_attached_cells_graph( std::string filename ); 
+
+extern std::unordered_map<std::string,int> cycle_model_codes;
+int find_cycle_model_code( std::string model_name ); 
 
 };
 

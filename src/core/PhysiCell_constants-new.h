@@ -65,46 +65,103 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_MultiCellDS_h__
-#define __PhysiCell_MultiCellDS_h__
+#ifndef __PhysiCell_constants_h__
+#define __PhysiCell_constants_h__
 
-#include <iostream>
-#include <sstream>
-#include <ctime>
-#include <cmath>
 #include <string>
-#include <vector>
-#include <random>
-#include <chrono>
+#include <unordered_map>
 
-#include "../core/PhysiCell.h"
-#include "../BioFVM/BioFVM_MultiCellDS.h"
-
-namespace PhysiCell{
-
-void add_PhysiCell_cell_to_open_xml_pugi(  pugi::xml_document& xml_dom, Cell& C ); // not implemented -- future edition 
-void add_PhysiCell_cells_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void add_PhysiCell_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
-
+namespace PhysiCell
+{
 	
-void save_PhysiCell_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time); 
-
-
-/* V2 functions */ 
-
-/*
-void add_PhysiCell_cell_to_open_xml_pugi_v2(  pugi::xml_document& xml_dom, Cell& C ); // not implemented -- future edition 
-void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void add_PhysiCell_to_open_xml_pugi_v2( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
+// class PhysiCell_constants
+namespace PhysiCell_constants
+{
+//  public:
+	extern const double pi;
 	
-void save_PhysiCell_to_MultiCellDS_xml_pugi_v2( std::string filename_base , Microenvironment& M , double current_simulation_time); 
-*/
+	extern const double cell_removal_threshold_volume; // 20 cubic microns -- about 1% of typical cell 
+	extern const int keep_pushed_out_cells_in_outer_voxel;
+	extern const int solid_boundary;
+	extern const int default_boundary_condition_for_pushed_out_agents;		
+	
+	extern const int deterministic_necrosis;
+	extern const int stochastic_necrosis;
+	
+	extern const int mesh_min_x_index;
+	extern const int mesh_min_y_index;
+	extern const int mesh_min_z_index;
+	extern const int mesh_max_x_index;
+	extern const int mesh_max_y_index;
+	extern const int mesh_max_z_index;			
+	
+	extern const int mesh_lx_face_index;
+	extern const int mesh_ly_face_index;
+	extern const int mesh_lz_face_index;
+	extern const int mesh_ux_face_index;
+	extern const int mesh_uy_face_index;
+	extern const int mesh_uz_face_index;
+	
+	// currently recognized cell cycle models 
+	extern const int advanced_Ki67_cycle_model;
+	extern const int basic_Ki67_cycle_model;
+	extern const int flow_cytometry_cycle_model;
+	extern const int live_apoptotic_cycle_model;
+	extern const int total_cells_cycle_model;
+	extern const int live_cells_cycle_model; 
+	extern const int flow_cytometry_separated_cycle_model; 
+	extern const int cycling_quiescent_model; 
+	
+	// currently recognized death models 
+	extern const int apoptosis_death_model; 
+	extern const int necrosis_death_model; 
+	extern const int autophagy_death_model; 
+	
+	extern const int custom_cycle_model; 
+	
+	// currently recognized cell cycle and death phases 
+	// cycle phases
+	extern const int Ki67_positive_premitotic; 
+	extern const int Ki67_positive_postmitotic; 
+	extern const int Ki67_positive; 
+	extern const int Ki67_negative; 
+	extern const int G0G1_phase;
+	extern const int G0_phase;
+	extern const int G1_phase; 
+	extern const int G1a_phase; 
+	extern const int G1b_phase;
+	extern const int G1c_phase;
+	extern const int S_phase;
+	extern const int G2M_phase;
+	extern const int G2_phase;
+	extern const int M_phase;
+	extern const int live;
+	
+	extern const int G1pm_phase;
+	extern const int G1ps_phase; 
+	
+	extern const int cycling; 
+	extern const int quiescent; 
+	
+	
+	extern const int custom_phase;
+	// death phases
+	extern const int apoptotic;
+	extern const int necrotic_swelling;
+	extern const int necrotic_lysed;
+	extern const int necrotic; 
+	extern const int debris; 
+}
+extern std::string time_units;
+extern std::string space_units;
+extern double diffusion_dt; 
+extern double mechanics_dt;
+extern double phenotype_dt;
+extern double intracellular_dt; 
 
-void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
-void save_PhysiCell_to_MultiCellDS_v2( std::string filename_base , Microenvironment& M , double current_simulation_time);
-void write_neighbor_graph( std::string filename ); 
-void write_attached_cells_graph( std::string filename ); 
-void write_spring_attached_cells_graph( std::string filename ); 
+
+extern std::unordered_map<std::string,int> cycle_model_codes;
+int find_cycle_model_code( std::string model_name ); 
 
 };
 
