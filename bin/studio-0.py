@@ -1,11 +1,9 @@
 """
-studio.py - driving module for the PhysiCell Studio to read in a PhysiCell config file (.xml), easily edit (e.g., change parameter values, add/delete more "objects", including substrates and cell types), and save the updated config file. In addition to tabs related to the XML, we provide additional tabs for creating initial conditions (ICs) for cells (in .csv format), running a simulation, and visualizing output.
+studio.py - driving module for the PhysiCell Studio to read in a sample PhysiCell config file (.xml), easily edit (e.g., change parameter values, add/delete more "objects", including substrates and cell types), and save the updated config file. In addition, the "Studio" feature adds additional GUI tabs for creating initial conditions for cells (.csv), running a simulation, and visualizing output.
 
 Authors:
 Randy Heiland (heiland@iu.edu): lead designer and developer
-Dr. Vincent Noel, Institut Curie: Cell Types|Intracellular|boolean
-Marco Ruscone, Institut Curie: Cell Types|Intracellular|boolean
-Dr. Daniel Bergman, Johns Hopkins University: ICs bioinformatics
+Vincent Noel, Institut Curie: Cell Types|Intracellular|boolean
 Dr. Paul Macklin (macklinp@iu.edu): PI, funding and testing
 
 Macklin Lab members (grads & postdocs): testing, design, code contributions.
@@ -22,7 +20,7 @@ import argparse
 import logging
 import traceback
 import shutil # for possible copy of file
-import glob
+import glob, zipfile
 from pathlib import Path
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 # from xml.dom import minidom   # possibly explore later if we want to access/update *everything* in the DOM
@@ -31,7 +29,7 @@ import numpy as np
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPalette, QColor, QIcon, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QRunnable, QThreadPool
 from PyQt5.QtWidgets import QStyleFactory
 
 from pretty_print_xml import pretty_print
@@ -46,8 +44,9 @@ except:
 from ics_tab import ICs
 from populate_tree_cell_defs import populate_tree_cell_defs
 from run_tab import RunModel 
-from settings import StudioSettings
+from debug_tab import Debug   # nanohub
 # from legend_tab import Legend 
+# from nanohub_files import HubFiles
 
 try:
     from simulariumio import UnitData, MetaData, DisplayData, DISPLAY_TYPE, ModelMetaData
@@ -69,7 +68,7 @@ def SingleBrowse(self):
 def startup_notice():
     msgBox = QMessageBox()
     msgBox.setIcon(QMessageBox.Information)
-    msgBox.setText("Editing the template config file from the Studio's /config directory. If you want to edit another, use File->Open or File->Load user project")
+    msgBox.setText("Editing the template config file from the Studio's /config directory. If you want to edit another, use File->Open or File->Samples")
     msgBox.setStandardButtons(QMessageBox.Ok)
 
     returnValue = msgBox.exec()
@@ -80,8 +79,71 @@ def quit_cb():
     global studio_app
     studio_app.quit()
 
+#-----------------------------------  
+class WorkerSignals(QObject):
+    '''
+    Defines the signals available from a running worker thread.
+    Supported signals are:
+    finished
+        No data
+    error
+        tuple (exctype, value, traceback.format_exc() )
+    result
+        object data returned from processing, anything
+    progress
+        int indicating % progress
+    '''
+    finished = pyqtSignal()
+    error = pyqtSignal(tuple)
+    result = pyqtSignal(object)
+    progress = pyqtSignal(int)
+
+
+class Worker(QRunnable):
+    '''
+    Worker thread
+    Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
+
+    :param callback: The function callback to run on this worker thread. Supplied args and
+                     kwargs will be passed through to the runner.
+    :type callback: function
+    :param args: Arguments to pass to the callback function
+    :param kwargs: Keywords to pass to the callback function
+    '''
+
+    def __init__(self, fn, *args, **kwargs):
+        super(Worker, self).__init__()
+
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+
+        # Add the callback to our kwargs
+        # self.kwargs['progress_callback'] = self.signals.progress
+
+    @pyqtSlot()
+    def run(self):
+        '''
+        Initialise the runner function with passed args, kwargs.
+        '''
+
+        # Retrieve args/kwargs here; and fire processing using them
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+        except:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)  # Return the result of the processing
+        finally:
+            self.signals.finished.emit()  # Done
+
+#-----------------------------------  
 class PhysiCellXMLCreator(QWidget):
-    def __init__(self, config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, pytest_flag, biwt_flag, parent = None):
+    def __init__(self, config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, debug_flag, parent = None):
         super(PhysiCellXMLCreator, self).__init__(parent)
         if model3D_flag:
             try:
@@ -99,16 +161,13 @@ class PhysiCellXMLCreator(QWidget):
             from vis_tab import Vis 
 
         self.studio_flag = studio_flag 
-        self.fix_min_size = True
         # self.view_shading = None
         self.skip_validate_flag = skip_validate_flag 
         self.rules_flag = rules_flag 
         self.model3D_flag = model3D_flag 
         self.tensor_flag = tensor_flag 
         self.nanohub_flag = nanohub_flag 
-        self.ecm_flag = False 
-        self.pytest_flag = pytest_flag 
-        self.biwt_flag = biwt_flag
+        self.debug_flag = debug_flag 
         print("PhysiCellXMLCreator(): self.nanohub_flag= ",self.nanohub_flag)
 
         self.rules_tab_index = None
@@ -133,8 +192,6 @@ class PhysiCellXMLCreator(QWidget):
         if studio_flag:
             self.title_prefix = "PhysiCell Studio: "
 
-        # self.studio_settings = StudioSettings(self, self.fix_min_size)  # pass in dict eventually
-
         self.vis2D_gouraud = False
 
         # self.nanohub_flag = False
@@ -142,16 +199,26 @@ class PhysiCellXMLCreator(QWidget):
             if "home/nanohub" in os.environ['HOME']:
                 self.nanohub_flag = True
 
+        self.current_dir = os.getcwd()
+        print("studio.py: self.current_dir = ",self.current_dir)
+        # self.debug_tab.add_msg("--- studio.py: self.current_dir = ",self.current_dir )
+        # logging.debug(f'self.current_dir = {self.current_dir}')
+
+
+        self.threadpool = None
         if self.nanohub_flag:
-            try:
-                tool_dir = os.environ['TOOLPATH']
-                dataDirectory = os.path.join(tool_dir,'data')
-            except:
-                binDirectory = os.path.dirname(os.path.abspath(__file__))
-                dataDirectory = os.path.join(binDirectory,'..','data')
-                print("-------- dataDirectory (relative) =",dataDirectory)
-            self.absolute_data_dir = os.path.abspath(dataDirectory)
-            print("-------- absolute_data_dir =",self.absolute_data_dir)
+            self.threadpool = QThreadPool()
+            # self.hub_files = HubFiles()
+            # binDirectory = os.path.dirname(os.path.abspath(__file__))
+            # dataDirectory = os.path.join(binDirectory,'..','data')
+
+            # dataDirectory = os.path.join(binDirectory,'..','data')
+            # tool_dir = os.getenv('TOOLPATH')
+            # tool_dir = os.environ['TOOLPATH']  # rwh: Beware! this is read-only
+            # dataDirectory = os.path.join(tool_dir,'data')
+            dataDirectory = os.path.join(self.current_dir,'data')
+            self.absolute_data_dir = os.path.abspath(dataDirectory)  # not needed?
+            print("studio.py: -------- absolute_data_dir =",self.absolute_data_dir)
 
             # NOTE: if your C++ needs to also have an absolute path to data dir, do so via an env var
             # os.environ['KIDNEY_DATA_PATH'] = self.absolute_data_dir
@@ -170,23 +237,56 @@ class PhysiCellXMLCreator(QWidget):
         vlayout.addWidget(menuWidget)
 
         self.setLayout(vlayout)
+        self.resize(1100, 770)  # width, height (height >= Cell Types|Death params)
+        self.setMinimumSize(1100, 770)  #width, height of window
 
-        # do later, otherwise problems sometimes
-        # self.resize(1100, 770)  # width, height (height >= Cell Types|Death params)
-        # self.setMinimumSize(1100, 770)  #width, height of window
+        self.studio_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+        if self.nanohub_flag:
+            # self.studio_data_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+            self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        else:
+            self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))
+        print("self.studio_root_dir = ",self.studio_root_dir)
+        logging.debug(f'self.studio_root_dir = {self.studio_root_dir}')
 
-        self.current_dir = os.getcwd()
-        print("self.current_dir = ",self.current_dir)
-        logging.debug(f'self.current_dir = {self.current_dir}')
+        # assume running from a PhysiCell root dir, but change if not
+        self.config_dir = os.path.realpath(os.path.join('.', 'config'))
 
-        if config_file:   # user specified config file on command line with "-c" arg
+        if self.current_dir == self.studio_root_dir:  # are we running from studio root dir?
+            # self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+            self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))
+            # self.debug_tab.add_msg("--- studio.py: self.current_dir (#2)= ",self.current_dir )
+        print(f'self.config_dir =  {self.config_dir}')
+        logging.debug(f'self.config_dir = {self.config_dir}')
+
+        # self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        # print("studio.py: self.studio_config_dir = ",self.studio_config_dir)
+        # sys.exit(1)
+
+        if config_file:
             self.current_xml_file = os.path.join(self.current_dir, config_file)
             print("got config_file=",config_file)
+            # sys.exit()
         else:
-            self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
-            if not Path(self.current_xml_file).is_file():
-                print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
-                sys.exit(1)
+            model_name = "interactions"  # for testing latest xml
+            # model_name = "rules"
+            if self.nanohub_flag:
+                # model_name = "rules"
+                model_name = "template"
+
+                #------- copy the empty rules.csv needed for template
+                tool_dir = os.environ['TOOLPATH']  # rwh: Beware! this is read-only
+                self.home_dir = os.getcwd()
+                rules_file0 = os.path.join(tool_dir,'data',"rules_empty.csv")
+                # for template
+                rules_file1 = os.path.join(self.home_dir,"rules.csv")
+                shutil.copy(rules_file0, rules_file1)
+
+                # for biorobots
+                rules_file1 = os.path.join(self.home_dir,"bots_rules.csv")
+                shutil.copy(rules_file0, rules_file1)
+
+            self.current_xml_file = os.path.join(self.studio_config_dir, model_name + ".xml")
 
 
         # NOTE! We operate *directly* on a default .xml file, not a copy.
@@ -194,23 +294,19 @@ class PhysiCellXMLCreator(QWidget):
         self.config_file = self.current_xml_file  # to Save
         print(f"studio: (default) self.config_file = {self.config_file}")
 
-        try:
-            self.tree = ET.parse(self.config_file)
-            print(f"studio: (default) self.tree = {self.tree}")
-        except:
-            msgBox = QMessageBox()
-            msgBox.setText(f'Error parsing the {self.config_file} Please check it for correctness.')
-            msgBox.setStandardButtons(QMessageBox.Ok)
-            returnValue = msgBox.exec()
-            print(f'\nError parsing the {self.config_file} Please check it for correctness.')
-            sys.exit(-1)
-
+        self.tree = ET.parse(self.config_file)
+        print(f"studio: (default) self.tree = {self.tree}")
         self.xml_root = self.tree.getroot()
         print(f"studio: (default) self.xml_root = {self.xml_root}")   #rwh
 
 
         self.num_models = 0
         self.model = {}  # key: name, value:[read-only, tree]
+
+        if self.debug_flag:
+            self.debug_tab = Debug()
+        else:
+            self.debug_tab = None
 
         self.config_tab = Config(self.studio_flag)
         self.config_tab_index = 0
@@ -224,10 +320,12 @@ class PhysiCellXMLCreator(QWidget):
         if self.nanohub_flag:  # rwh - test if works on nanoHUB
             print("studio.py: ---- TRUE nanohub_flag: updating config_tab folder")
             # self.config_tab.folder.setText('tmpdir')
-            self.config_tab.folder.setText('.')
+            # self.config_tab.folder.setText('.')
+            self.config_tab.folder.setText('tmpdir')
+            # self.config_tab.folder.setText('output')
             # self.config_tab.folder.setEnabled(False)
             # self.config_tab.csv_folder.setText('')
-            self.config_tab.csv_folder.setEnabled(False)
+            # self.config_tab.csv_folder.setEnabled(False)
         else:
             print("studio.py: ---- FALSE nanohub_flag: NOT updating config_tab folder")
 
@@ -240,7 +338,7 @@ class PhysiCellXMLCreator(QWidget):
 
         # self.tab2.tree.setCurrentItem(QTreeWidgetItem,0)  # item
 
-        self.celldef_tab = CellDef(self.pytest_flag, self.config_tab)
+        self.celldef_tab = CellDef()
         self.celldef_tab.xml_root = self.xml_root
         if is_movable_flag:
             self.celldef_tab.is_movable_w.setEnabled(True)
@@ -257,17 +355,10 @@ class PhysiCellXMLCreator(QWidget):
         populate_tree_cell_defs(self.celldef_tab, self.skip_validate_flag)
         # self.celldef_tab.customdata.param_d = self.celldef_tab.param_d
 
-        # self.celldef_tab.enable_interaction_callbacks()
-
-        # print("\n\n---- studio.py: post populate_tree_cell_defs():")
-        # for cdef in self.celldef_tab.param_d.keys():
-        #     print(f'{cdef} --> {self.celldef_tab.param_d[cdef]["transformation_rate"]}')
-
-        # print(self.celldef_tab.param_d)
+        # print("\n\n---- studio: post populate_tree_cell_defs():")
         # print(self.celldef_tab.param_d)
 
         # self.celldef_tab.fill_substrates_comboboxes() # do before populate?
-        print("\n\n---- studio.py: calling celldef_tab.fill_celltypes_comboboxes()")
         self.celldef_tab.fill_celltypes_comboboxes()
 
         self.microenv_tab.celldef_tab = self.celldef_tab
@@ -276,7 +367,7 @@ class PhysiCellXMLCreator(QWidget):
         self.user_params_tab.xml_root = self.xml_root
         self.user_params_tab.fill_gui()
 
-        print("studio.py: cell_rules (in xml_root)= ",self.xml_root.find(".//cell_definitions//cell_rules"))
+        print("studio.py: ",self.xml_root.find(".//cell_definitions//cell_rules"))
         # if self.xml_root.find(".//cell_definitions//cell_rules"):
 
         #------------------
@@ -311,11 +402,13 @@ class PhysiCellXMLCreator(QWidget):
         self.tabWidget.currentChanged.connect(self.tab_change_cb)
 
         self.current_dir = os.getcwd()
+        # self.debug_tab.add_msg("--- studio.py: self.current_dir (#3)= ",self.current_dir )
         # print("studio.py: self.current_dir = ",self.current_dir)
         logging.debug(f'studio.py: self.current_dir = {self.current_dir}')
 
         if self.rules_flag:
             self.rules_tab = Rules(self.nanohub_flag, self.microenv_tab, self.celldef_tab)
+            self.rules_tab.debug_tab = self.debug_tab
             # self.rules_tab.fill_gui()
             self.tabWidget.addTab(self.rules_tab,"Rules")
             self.rules_tab.xml_root = self.xml_root
@@ -325,31 +418,32 @@ class PhysiCellXMLCreator(QWidget):
                 self.rules_tab.absolute_data_dir = self.absolute_data_dir
             self.rules_tab.fill_gui()
 
-            if self.nanohub_flag:
-                self.rules_tab.rules_folder.setText(self.absolute_data_dir)
+            # if self.nanohub_flag:
+            #     # self.rules_tab.rules_folder.setText(self.absolute_data_dir)
+            #     self.rules_tab.rules_folder.setText(".")
+            #     self.rules_tab.rules_file.setText("myrules.csv")
+
 
         if self.studio_flag:
             logging.debug(f'studio.py: creating ICs, Run, and Plot tabs')
-            self.ics_tab = ICs(self.config_tab, self.celldef_tab, self.biwt_flag)
-            self.config_tab.ics_tab = self.ics_tab
-            self.microenv_tab.ics_tab = self.ics_tab
+            self.ics_tab = ICs(self.config_tab, self.celldef_tab)
             self.ics_tab.fill_celltype_combobox()
-            self.ics_tab.fill_substrate_combobox()
             self.ics_tab.reset_info()
 
             if self.nanohub_flag:  # rwh - test if works on nanoHUB
                 print("studio.py: ---- TRUE nanohub_flag: updating ics_tab folder")
                 # self.ics_tab.csv_folder.setText('')
-                self.config_tab.csv_folder.setText(self.absolute_data_dir)
-                self.config_tab.csv_folder.setEnabled(False)
+                # self.config_tab.csv_folder.setText(self.absolute_data_dir)
+                self.config_tab.csv_folder.setText('.')
+                # self.config_tab.csv_folder.setEnabled(False)
                 self.config_tab.csv_file.setText("mycells.csv")
 
-                self.ics_tab.csv_folder.setText(self.absolute_data_dir)
-                self.ics_tab.output_file.setText("mycells.csv")
+                # self.ics_tab.csv_folder.setText(self.absolute_data_dir)
+                self.ics_tab.csv_folder.setText(".")
                 self.ics_tab.csv_folder.setEnabled(False)
+                self.ics_tab.output_file.setText("mycells.csv")
             else:
                 print("studio.py: ---- FALSE nanohub_flag: NOT updating ics_tab folder")
-                self.ics_tab.fill_gui()  # New Aug 2023
 
             self.celldef_tab.ics_tab = self.ics_tab
             # self.rules_tab.fill_gui()
@@ -357,27 +451,28 @@ class PhysiCellXMLCreator(QWidget):
 
             self.run_tab = RunModel(self.nanohub_flag, self.tabWidget, self.celldef_tab, self.rules_flag, self.download_menu)
 
-            self.homedir = os.getcwd()
-            print("studio.py: self.homedir = ",self.homedir)
+            self.home_dir = os.getcwd()
+            print("studio.py: self.home_dir = ",self.home_dir)
             if self.nanohub_flag:
                 try:
+                    self.run_tab.home_dir = self.home_dir
                     # cachedir = os.environ['CACHEDIR']
                     toolpath = os.environ['TOOLPATH']
                     print("studio.py: toolpath= ",toolpath)
                     # full_path = os.path.join(toolpath, "data")
-                    self.homedir = os.path.join(toolpath, "data")
+                    # self.home_dir = os.path.join(toolpath, "data")  # NO! rwh. But see use below.
                 except:
                     print("studio.py: exception doing os.environ('TOOLPATH')")
 
-            self.run_tab.homedir = self.homedir
+            # self.run_tab.home_dir = self.home_dir
 
             # self.run_tab.config_xml_name.setText(current_xml_file)
             # self.run_tab.exec_name.setText(exec_file)
             # self.run_tab.exec_name.setText(str(Path(exec_file)))
             if not self.nanohub_flag:
-                self.run_tab.exec_name.setText(os.path.join(self.homedir, exec_file))
+                self.run_tab.exec_name.setText(os.path.join(self.home_dir, exec_file))
             else:
-                # self.run_tab.exec_name.setText(os.path.join(self.homedir, "bin", exec_file))
+                # self.run_tab.exec_name.setText(os.path.join(self.home_dir, "bin", exec_file))
                 self.run_tab.exec_name.setText(os.path.join(exec_file))
 
             self.run_tab.config_xml_name.setText(self.current_xml_file)
@@ -397,17 +492,16 @@ class PhysiCellXMLCreator(QWidget):
             self.tabWidget.addTab(self.run_tab,"Run")
 
             # config_tab needed for 3D domain boundary outline
-            # self.vis_tab = Vis(self.studio_flag, self.nanohub_flag, self.config_tab, self.celldef_tab, self.run_tab, self.model3D_flag, self.tensor_flag, self.ecm_flag)
-            self.vis_tab = Vis(self.studio_flag, self.rules_flag, self.nanohub_flag, self.config_tab, self.microenv_tab, self.celldef_tab, self.user_params_tab, self.rules_tab, self.ics_tab, self.run_tab, self.model3D_flag, self.tensor_flag, self.ecm_flag)
+            self.vis_tab = Vis(self.nanohub_flag, self.config_tab, self.run_tab, self.model3D_flag, self.tensor_flag)
             # if not self.nanohub_flag:
             self.vis_tab.output_folder.setText(self.config_tab.folder.text())
             self.vis_tab.update_output_dir(self.config_tab.folder.text())
             self.config_tab.vis_tab = self.vis_tab
             if self.nanohub_flag:  # rwh - test if works on nanoHUB
-                # self.vis_tab.output_folder.setText('tmpdir')
-                self.vis_tab.output_folder.setText('.')
+                self.vis_tab.output_folder.setText('tmpdir')
+                # self.vis_tab.output_folder.setText('.')
                 # self.vis_tab.output_folder.setEnabled(False)
-                self.vis_tab.output_folder_button.setEnabled(False)
+                # self.vis_tab.output_folder_button.setEnabled(False)
 
             self.vis_tab.config_tab = self.config_tab
             # self.vis_tab.output_dir = self.config_tab.plot_folder.text()
@@ -422,8 +516,6 @@ class PhysiCellXMLCreator(QWidget):
             # self.tabWidget.setTabEnabled(5, False)
             self.enablePlotTab(False)
             self.enablePlotTab(True)
-
-            self.studio_settings = StudioSettings(self, self.fix_min_size, self.vis_tab)  # pass in dict eventually
 
             # self.tabWidget.addTab(self.legend_tab,"Legend")
             # self.enableLegendTab(False)
@@ -442,16 +534,30 @@ class PhysiCellXMLCreator(QWidget):
             # if Path(legend_file).is_file():
             #     self.legend_tab.reload_legend()
 
+            if self.debug_flag:
+                # self.tabWidget.addTab(self.debug_tab,"Debug")   # rwh: disable for "production" app
+                self.run_tab.debug_tab = self.debug_tab
+                self.vis_tab.debug_tab = self.debug_tab
+
+                self.debug_msg("--- studio.py: self.current_dir = "+self.current_dir )
+                # ~l.330
+                self.debug_msg(" studio.py: self.absolute_data_dir is "+self.absolute_data_dir)
+                self.debug_msg(" studio.py: self.rules_tab.rules_folder.text() is "+self.rules_tab.rules_folder.text())
+
+                self.debug_msg(" studio.py: self.home_dir is "+self.home_dir)
+                if self.nanohub_flag:
+                    try:
+                        toolpath = os.environ['TOOLPATH']
+                        self.debug_msg(" studio.py: TOOLPATH is "+toolpath)
+                    except:
+                        print("studio.py: unable to get TOOLPATH")
+
             self.vis_tab.reset_model()
             
 
+
         vlayout.addWidget(self.tabWidget)
         # self.addTab(self.sbml_tab,"SBML")
-
-        # self.setFixedSize(vlayout.sizeHint())  # manually force/fix size to fit all of GUI widgets!!
-        self.resize(1100, 770)  # width, height (height >= Cell Types|Death params)
-        if self.fix_min_size:
-            self.setMinimumSize(1100, 770)  #width, height of window
 
         if self.model3D_flag:
             self.tabWidget.setCurrentIndex(self.plot_tab_index)
@@ -463,7 +569,7 @@ class PhysiCellXMLCreator(QWidget):
         # self.tabWidget.setCurrentIndex(2)  # rwh/debug: select Cell Types
 
     def tab_change_cb(self,index: int):
-        # print("\nstudio.py: -------- tab index=",index)
+        # print("\n-------- tab index=",index)
         # if index == 0:
         #     studio_app.resize(1101,770) # recall: print("size=",ex.size())  # = PyQt5.QtCore.QSize(1100, 770)
         #     studio_app.resize(1101,970) # recall: print("size=",ex.size())  # = PyQt5.QtCore.QSize(1100, 770)
@@ -471,12 +577,12 @@ class PhysiCellXMLCreator(QWidget):
             self.microenv_tab.update_3D()
 
         elif self.rules_tab_index and (index == self.rules_tab_index): 
+            self.rules_tab.update_base_value()
             if self.rules_tab.update_rules_for_custom_data:
                 print("studio.py: need to update Rules comboboxes for changed custom data")
                 self.rules_tab.fill_signals_widget()
                 self.rules_tab.fill_responses_widget()
                 self.rules_tab.update_rules_for_custom_data = False
-            self.rules_tab.update_base_value()
 
     def about_pyqt(self):
         msgBox = QMessageBox()
@@ -509,7 +615,7 @@ For licensing information:<br>
         about_text = "Version " + v + """ <br><br>
 PhysiCell Studio is a tool to provide graphical editing of a PhysiCell model and, optionally, run a model and visualize results. &nbsp; It is led by the Macklin Lab (Indiana University) with contributions from the PhysiCell community.<br><br>
 
-NOTE: When loading a model (.xml configuration file), it must be a "flat" format for the  cell_definitions, i.e., all parameters need to be defined. &nbsp; Legacy PhysiCell models used a hierarchical format in which a cell_definition could inherit from a parent. &nbsp; The hierarchical format is not supported in the Studio.<br><br>
+NOTE: When loading a model (.xml configuration file), it must be a "flat" format for the  cell_definitions, i.e., all parameters need to be defined. &nbsp; Many legacy PhysiCell models used a hierarchical format in which a cell_definition could inherit from a parent. &nbsp; The hierarchical format is not supported in the Studio.<br><br>
 
 For more information:<br>
 <a href="https://github.com/PhysiCell-Tools/PhysiCell-Studio">github.com/PhysiCell-Tools/PhysiCell-Studio</a><br>
@@ -519,31 +625,26 @@ For more information:<br>
 PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no event shall the Authors be liable for any damages whatsoever.<br>
         """
         msgBox.setText(about_text)
+        # msgBox.setInformativeText(about_text)
+        # msgBox.setDetailedText(about_text)
+        # msgBox.setText("PhysiCell Studio is a tool to provide easy editing of a PhysiCell model and, optionally, run a model and visualize results.")
         msgBox.setStandardButtons(QMessageBox.Ok)
         # msgBox.buttonClicked.connect(msgButtonClick)
 
         returnValue = msgBox.exec()
 
-    def settings_studio_cb(self):
-        self.studio_settings.hide()
-        self.studio_settings.show()
-
     def enablePlotTab(self, bval):
         # self.tabWidget.setTabEnabled(5, bval)
         self.tabWidget.setTabEnabled(self.plot_tab_index, bval)
 
-
-    def model_summary_cb(self):
-        print("studio.py: model_summary_cb")
-        self.vis_tab.model_summary_cb()
+    # def enableLegendTab(self, bval):
+    #     # self.tabWidget.setTabEnabled(6, bval)   
+    #     # self.tabWidget.setTabEnabled(6, bval)   
+    #     self.tabWidget.setTabEnabled(self.legend_tab_index, bval)
 
     def filterUI_cb(self):
         print("studio.py: filterUI_cb")
         self.vis_tab.filterUI_cb()
-
-    def run_model_cb(self):
-        print("studio.py: run_model_cb")
-        self.run_tab.run_model_cb()
 
     def menu(self):
         menubar = QMenuBar(self)
@@ -561,7 +662,6 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         #--------------
         studio_menu = menubar.addMenu('&Studio')
         studio_menu.addAction("About", self.about_studio)
-        studio_menu.addAction("Settings", self.settings_studio_cb)
         # studio_menu.addAction("About PyQt", self.about_pyqt)
         # studio_menu.addAction("Preferences", self.prefs_cb)
         if not self.nanohub_flag:
@@ -574,11 +674,21 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             model_menu = menubar.addMenu('&Model')
             model_menu.addAction("template", self.template_cb)
             model_menu.addAction("biorobots", self.biorobots_cb)
-            model_menu.addAction("tumor_immune", self.tumor_immune_cb)
+            model_menu.addAction("tumor_immune", self.tumor_immune_cb)   # was "rules"
+
+            # model_menu.addAction("celltypes3", self.celltypes3_nanohub_cb)
+            # model_menu.addAction("pred_prey_farmer", self.pred_prey_nanohub_cb)
+            # model_menu.addAction("biorobots", self.biorobots_nanohub_cb)
+            # model_menu.addAction("celltypes3", self.celltypes3_nanohub_cb)
+            # model_menu.addAction("pred_prey_farmer", self.pred_prey_nanohub_cb)
+            # pass
 
         #--------------
         else:
+            # file_menu = menubar.addMenu('&File')
+            # file_menu.addAction("New (template)", self.new_model_cb, QtGui.QKeySequence('Ctrl+n'))
             file_menu.addAction("Open", self.open_as_cb, QtGui.QKeySequence('Ctrl+o'))
+            # file_menu.addAction("Save mymodel.xml", self.save_cb, QtGui.QKeySequence('Ctrl+s'))
             file_menu.addAction("Save as", self.save_as_cb)
             file_menu.addAction("Save", self.save_cb, QtGui.QKeySequence('Ctrl+s'))
             #------
@@ -593,20 +703,83 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
             #------
             file_menu.addSeparator()
-            file_menu.addAction("Save user project", self.save_user_proj_cb)
-            file_menu.addAction("Load user project", self.load_user_proj_cb)
+            samples_menu = file_menu.addMenu("Samples")
+
+            template_act = QAction('template', self)
+            samples_menu.addAction(template_act)
+            template_act.triggered.connect(self.template_cb)
+
+            biorobots_act = QAction('biorobots', self)
+            samples_menu.addAction(biorobots_act)
+            biorobots_act.triggered.connect(self.biorobots_cb)
+
+            cancer_biorobots_act = QAction('cancer biorobots', self)
+            samples_menu.addAction(cancer_biorobots_act)
+            cancer_biorobots_act.triggered.connect(self.cancer_biorobots_cb)
+
+            hetero_act = QAction('heterogeneity', self)
+            samples_menu.addAction(hetero_act)
+            hetero_act.triggered.connect(self.hetero_cb)
+
+            pred_prey_act = QAction('predator-prey-farmer', self)
+            samples_menu.addAction(pred_prey_act)
+            pred_prey_act.triggered.connect(self.pred_prey_cb)
+
+            virus_mac_act = QAction('virus-macrophage', self)
+            samples_menu.addAction(virus_mac_act)
+            virus_mac_act.triggered.connect(self.virus_mac_cb)
+
+            worm_act = QAction('worm', self)
+            samples_menu.addAction(worm_act)
+            worm_act.triggered.connect(self.worm_cb)
+
+            interactions_act = QAction('interactions', self)
+            samples_menu.addAction(interactions_act)
+            interactions_act.triggered.connect(self.interactions_cb)
+
+            mechano_act = QAction('mechano', self)
+            samples_menu.addAction(mechano_act)
+            mechano_act.triggered.connect(self.mechano_cb)
+
+            cancer_immune_act = QAction('cancer immune (3D)', self)
+            samples_menu.addAction(cancer_immune_act)
+            cancer_immune_act.triggered.connect(self.cancer_immune_cb)
+
+            physiboss_cell_lines_act = QAction('PhysiBoSS cell lines', self)
+            samples_menu.addAction(physiboss_cell_lines_act)
+            physiboss_cell_lines_act.triggered.connect(self.physiboss_cell_lines_cb)
+
+            subcell_act = QAction('subcellular', self)
+            # samples_menu.addAction(subcell_act)
+            subcell_act.triggered.connect(self.subcell_cb)
+
+            covid19_act = QAction('covid19_v5', self)
+            # samples_menu.addAction(covid19_act)
+            covid19_act.triggered.connect(self.covid19_cb)
+
+            test_gui_act = QAction('test-gui', self)
+            # samples_menu.addAction(test_gui_act)
+            test_gui_act.triggered.connect(self.test_gui_cb)
+
+        # else:
+            # file_menu.addAction("Save as mymodel.xml", self.save_as_cb)
 
 
         if self.nanohub_flag:
             self.download_menu = file_menu.addMenu('Download')
             self.download_config_item = self.download_menu.addAction("Download config.xml", self.download_config_cb)
-            self.download_csv_item = self.download_menu.addAction("Download cells,rules (.csv) data", self.download_csv_cb)
-            self.download_rules_item = self.download_menu.addAction("Download rules.txt", self.download_rules_cb)
+            # self.download_csv_item = self.download_menu.addAction("Download cells,rules (.csv) data", self.download_csv_thread_cb)
+            self.download_rules0_item = self.download_menu.addAction("Download rules.csv", self.download_rules_csv_cb)
+            self.download_rules1_item = self.download_menu.addAction("Download rules.txt", self.download_rules_txt_cb)
             self.download_svg_item = self.download_menu.addAction("Download cell (.svg) data", self.download_svg_cb)
             self.download_mat_item = self.download_menu.addAction("Download full (.mat) data", self.download_full_cb)
             self.download_graph_item = self.download_menu.addAction("Download cell graph (.txt) data", self.download_graph_cb)
+            self.download_csv_item = self.download_menu.addAction("Download all .csv data", self.download_csv_cb)
             # self.download_menu_item.setEnabled(False)
             # self.download_menu.setEnabled(False)
+
+            self.upload_menu = file_menu.addMenu('Upload')
+            self.upload_config_item = self.upload_menu.addAction("Upload mymodel.xml", self.upload_config_cb)
         else:
             self.download_menu = None
 
@@ -627,26 +800,17 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 view_menu.triggered.connect(self.view2D_cb)
 
                 vis2D_filterUI_act = view_menu.addAction("Plot options", self.filterUI_cb)
-                vis2D_model_summary_act = view_menu.addAction("Model summary", self.model_summary_cb)
 
 
-        action_menu = menubar.addMenu('&Action')
-        action_menu.addAction("Run", self.run_model_cb, QtGui.QKeySequence('Ctrl+r'))
 
         help_menu = menubar.addMenu('&Help')
-        # help_menu.triggered.connect(self.open_help_url)
+        help_menu.triggered.connect(self.open_help_url)
         guide_act = help_menu.addAction("User Guide (link)", self.open_help_url)
-        issues_act = help_menu.addAction("Create Issue (link)", self.create_issue_url)
 
         menubar.adjustSize()  # Argh. Otherwise, only 1st menu appears, with ">>" to others!
 
     def open_help_url(self):
-        url = QtCore.QUrl('https://github.com/PhysiCell-Tools/Studio-Guide/blob/main/README.md')
-        if not QtGui.QDesktopServices.openUrl(url):
-            QtGui.QMessageBox.warning(self, 'Open Url', 'Could not open URL')
-
-    def create_issue_url(self):
-        url = QtCore.QUrl('https://github.com/PhysiCell-Tools/PhysiCell-Studio/issues')
+        url = QtCore.QUrl('https://github.com/rheiland/PhysiCell-Studio/blob/main/user-guide/README.md')
         if not QtGui.QDesktopServices.openUrl(url):
             QtGui.QMessageBox.warning(self, 'Open Url', 'Could not open URL')
 
@@ -667,8 +831,6 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         self.user_params_tab.xml_root = self.xml_root
 
         self.config_tab.fill_gui()
-        self.ics_tab.fill_gui()  # New Aug 2023
-
         if self.model3D_flag and self.xml_root.find(".//domain//use_2D").text.lower() == 'true':
             print("You're running a 3D Studio, but the model is 2D")
             msgBox = QMessageBox()
@@ -703,12 +865,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
     def show_sample_model(self):
         logging.debug(f'studio: show_sample_model(): self.config_file = {self.config_file}')
         print(f'\nstudio: show_sample_model(): self.config_file = {self.config_file}')
-        try:
-            self.tree = ET.parse(self.config_file)
-        except:
-            self.show_error_message(f"Error: unable to parse XML file {self.config_file}")
-            return
-
+        self.tree = ET.parse(self.config_file)
         print(f'studio: show_sample_model(): self.tree = {self.tree}')
         if self.studio_flag:
             self.run_tab.tree = self.tree  #rwh
@@ -765,7 +922,6 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 elem.tail = i
 
 
-    #---------------------------------
     def save_as_cb(self):
         # print("------ save_as_cb():")
         self.celldef_tab.check_valid_cell_defs()
@@ -780,19 +936,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             print("save_as_cb():  filePath is valid")
             print("len(full_path_model_name) = ", len(full_path_model_name) )
             # self.current_save_file = full_path_model_name
-            orig_file_name = self.current_xml_file
-            self.current_xml_file =full_path_model_name 
-
-            # print("full_path_model_name[-4:]= ",full_path_model_name[-4:] )
-            if full_path_model_name[-4:] != ".xml":
-                print("missing .xml suffix")
-                msgBox = QMessageBox()
-                msgBox.setIcon(QMessageBox.Information)
-                msgBox.setText("Missing a .xml suffix. Continue?")
-                msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-                returnValue = msgBox.exec()
-                if returnValue == QMessageBox.Cancel:
-                    return
+            self.current_xml_file = full_path_model_name
         else:
             return
 
@@ -810,7 +954,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             if self.rules_flag:
                 self.rules_tab.fill_xml()
             
-            # self.setWindowTitle(self.title_prefix + self.current_xml_file)  # No!
+            self.setWindowTitle(self.title_prefix + self.current_xml_file)
 
             # print("\n\n ===================================")
             print("studio.py:  save_as_cb: writing to: ",self.current_xml_file)
@@ -819,12 +963,9 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             print("studio.py:  save_as_cb: doing pretty_print ")
             pretty_print(self.current_xml_file, self.current_xml_file)
 
-            # Revert/retain original .xml file
-            self.current_xml_file = orig_file_name
-
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Information)
-            msgBox.setText("Note: you need to File->Open this newly saved file to load it into the Studio.")
+            msgBox.setText("Note: this will not change the config file in the Run tab.")
             msgBox.setStandardButtons(QMessageBox.Ok)
             returnValue = msgBox.exec()
 
@@ -848,7 +989,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             self.user_params_tab.fill_xml()
             if self.rules_flag:
                 self.rules_tab.fill_xml()
-            
+
             self.setWindowTitle(self.title_prefix + self.current_xml_file)
 
             # print("\n\n ===================================")
@@ -858,166 +999,11 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # self.tree.write(out_file)  # originally
             self.tree.write(self.current_xml_file)
             pretty_print(self.current_xml_file, self.current_xml_file)
-
+    
         except CellDefException as e:
             self.show_error_message(str(e) + " : save_cb(): Error: Please finish the definition before saving.")
 
-    #---------------------------------
-    def save_user_proj_cb(self):
-        if not os.path.isfile(os.path.join(self.current_dir, "main.cpp")):
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setText("Warning: You do not seem to be in a PhysiCell root directory. Continue?")
-            msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            returnValue = msgBox.exec()
-            if returnValue == QMessageBox.Cancel:
-                return
 
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.Directory)
-        folder_path = dialog.getExistingDirectory(None, "Select project folder","user_projects",QFileDialog.ShowDirsOnly)
-        print("save_user_proj_cb():  folder_path=",folder_path)
-        # print("save_user_proj_cb():  len(folder_path)=",len(folder_path))
-        if len(folder_path) == 0:   # User hit Cancel on dialog
-            print("Canceled - will not attempt to save project.")
-            return
-        # e.g., /Users/heiland/dev/PhysiCell_v1.12.0/user_projects/rwh3
-
-        for f in ["main.cpp", "Makefile", "VERSION.txt"]:
-            try:
-                shutil.copy(f, folder_path)
-            except:
-                print(f"--- Warning: cannot save {f}")
-        #---------
-        subdir = Path(folder_path, "config")
-        try:
-            os.makedirs(subdir)
-        except:
-            print(f"--- Warning: {subdir} already exists.")
-
-        try:
-            for f in glob.glob("config/*"):
-                shutil.copy(f, subdir)
-        except:
-            print(f"--- Warning: cannot copy files in config/*")
-
-        # Also copy the config file specified in the Run tab (it might not be in /config !)
-        try:
-            shutil.copy(self.current_xml_file, subdir)
-        except:
-            print(f"--- Warning: cannot copy {self.current_xml_file} to /config")
-
-        #---------
-        subdir = Path(folder_path, "custom_modules")
-        try:
-            os.makedirs(subdir)
-        except:
-            print(f"--- Warning: {subdir} already exists.")
-
-        try:
-            for f in glob.glob("custom_modules/*"):
-                shutil.copy(f, subdir)
-        except:
-            print(f"--- Warning: cannot copy custom_modules/*")
-
-
-    #---------------------------------
-    def load_user_proj_studio_template(self, proj_path):
-        try:
-            # dialog = QFileDialog(self)
-            # dialog.setFileMode(QFileDialog.Directory)
-            # folder_path = dialog.getExistingDirectory(None, "Select project folder","user_projects",QFileDialog.ShowDirsOnly)
-            # print("load_user_proj_cb():  folder_path=",folder_path)
-            # if len(folder_path) == 0:   # User hit Cancel on dialog
-            #     print("Canceled - will not attempt to load project.")
-            #     return
-
-        # load_user_proj_cb():  folder_path= /Users/heiland/PhysiCell/user_projects/mine1
-
-            for f in ["main.cpp", "Makefile"]:
-                try:
-                    f2 = os.path.join(proj_path, f)
-                    shutil.copy(f2, '.')
-                    print(f"copy {f2} to root")
-                except:
-                    print(f"--- Warning: cannot copy {f2}")
-
-            old = os.path.join("config", "PhysiCell_settings.xml")
-            bkup = os.path.join("config", "PhysiCell_settings-backup.xml")
-            try:
-                shutil.copy(old, bkup)
-            except:
-                print(f"--- Warning: cannot copy {old} to {bkup}")
-
-            for d in ["config", "custom_modules"]:
-                d1 = os.path.join(proj_path, d)
-                print(f"d1 = {d1}")
-                for f in glob.glob(str(d1) + "/*"):
-                    print(f"copying {f} to {d}")
-                    shutil.copy(f, d)
-
-            # msgBox = QMessageBox()
-            # msgBox.setIcon(QMessageBox.Information)
-            # msgBox.setText("Loaded (copied) Studio template files to:  main.cpp, Makefile, config/*, and custom_modules/*.\n\nUse File->Open to load the .xml configuration file.")
-            # msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            # returnValue = msgBox.exec()
-
-        except:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setText("load_user_proj_cb(): Possible failure. See terminal output.")
-            msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            returnValue = msgBox.exec()
-
-    #---------------------------------
-    def load_user_proj_cb(self):
-        if not os.path.isfile(os.path.join(self.current_dir, "main.cpp")):
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setText("Warning: You do not seem to be in a PhysiCell root directory. Continue?")
-            msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            returnValue = msgBox.exec()
-            if returnValue == QMessageBox.Cancel:
-                return
-
-        try:
-            dialog = QFileDialog(self)
-            dialog.setFileMode(QFileDialog.Directory)
-            folder_path = dialog.getExistingDirectory(None, "Select project folder","user_projects",QFileDialog.ShowDirsOnly)
-            print("load_user_proj_cb():  folder_path=",folder_path)
-            if len(folder_path) == 0:   # User hit Cancel on dialog
-                print("Canceled - will not attempt to load project.")
-                return
-
-            for f in ["main.cpp", "Makefile"]:
-                try:
-                    f2 = os.path.join(folder_path, f)
-                    shutil.copy(f2, '.')
-                    print(f"copy {f2} to root")
-                except:
-                    print(f"--- Warning: cannot copy {f2}")
-
-            for d in ["config", "custom_modules"]:
-                d1 = os.path.join(folder_path, d)
-                print(f"d1 = {d1}")
-                for f in glob.glob(str(d1) + "/*"):
-                    print(f"copying {f} to {d}")
-                    shutil.copy(f, d)
-
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setText("Loaded (copied) files to:  main.cpp, Makefile, config/*, and custom_modules/*.\n\nUse File->Open to load the .xml configuration file.")
-            msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            returnValue = msgBox.exec()
-
-        except:
-            msgBox = QMessageBox()
-            msgBox.setIcon(QMessageBox.Information)
-            msgBox.setText("load_user_proj_cb(): Possible failure. See terminal output.")
-            msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            returnValue = msgBox.exec()
-
-    #---------------------------------
     def validate_cb(self):  # not used currently
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Information)
@@ -1074,7 +1060,14 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         msg.exec_()
 
 
+    def debug_msg(self,msg):
+        if self.debug_tab is None:
+            return
+        else:
+            self.debug_tab.add_msg(msg)
+
     def load_model(self,name):
+        self.debug_msg("studio.py:  load_model() ------------")
         if self.studio_flag:
             self.run_tab.cancel_model_cb()  # if a sim is already running, cancel it
             self.vis_tab.physiboss_vis_checkbox = None    # default: assume a non-boolean intracellular model
@@ -1083,13 +1076,16 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 self.vis_tab.physiboss_vis_checkbox.setChecked(False)
 
 
+        self.debug_msg("    load_model(): chdir to "+self.current_dir)
         os.chdir(self.current_dir)  # just in case we were in /tmpdir (and it crashed/failed, leaving us there)
 
+        # self.studio_config_dir = the tool dir (/apps/pcstudio/r63/data)
         self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
-        logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
+        self.debug_tab.add_msg("    load_model(): current_xml_file= "+self.current_xml_file)
+        # logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
         print(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
 
-        logging.debug(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
+        # logging.debug(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
         print(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
 
         # if self.xml_root.find(".//cell_definitions//cell_rules"):
@@ -1110,14 +1106,13 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
     #----------------------
     def simularium_cb(self):
         # print("---- Simularium export coming soon...")
-        print(f"---- begin Simularium file creation (simularium_installed={simularium_installed})...")
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Information)
         # msgBox.setText("Simularium export coming soon." + "simularium_installed is " + str(simularium_installed))
         if not simularium_installed:
             msgBox.setText("The simulariumio module is not installed. You can try to: pip install simulariumio")
             msgBox.setStandardButtons(QMessageBox.Ok)
-            returnValue = msgBox.exec()
+            # returnValue = msgBox.exec()
             return
         # if returnValue == QMessageBox.Ok:
             # print('OK clicked')
@@ -1129,108 +1124,174 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             return
 
         self.vis_tab.convert_to_simularium(self.current_xml_file)
-        print("---- Simularium file created.")
         return
 
-    #-------  Leave these for nanoHUB ---------------
+
+        # sim_output_dir = os.path.realpath(os.path.join('.', self.config_tab.folder.text()))
+        # print("sim_output_dir = ",sim_output_dir )
+
+        # simularium_model_data = PhysicellData(
+        #     timestep=1.0,
+        #     path_to_output_dir=sim_output_dir, 
+        #     meta_data=MetaData(
+        #         box_size=np.array([200.0, 200.0, 200.0]),
+        #         scale_factor=0.01,
+        #         trajectory_title="Some parameter set",
+        #         model_meta_data=ModelMetaData(
+        #             title="worm",
+        #             version="8.1",
+        #             authors="PhysiCell modeler",
+        #             description=(
+        #                 "A PhysiCell model run with some parameter set"
+        #             ),
+        #             doi="10.1016/j.bpj.2016.02.002",
+        #             source_code_url="https://github.com/allen-cell-animated/simulariumio",
+        #             source_code_license_url="https://github.com/allen-cell-animated/simulariumio/blob/main/LICENSE",
+        #             input_data_url="https://allencell.org/path/to/native/engine/input/files",
+        #             raw_output_data_url="https://allencell.org/path/to/native/engine/output/files",
+        #         ),
+        #     ),
+        #     nth_timestep_to_read=1,
+        #     display_data={
+        #         0: DisplayData(
+        #             name="ctype1",
+        #             color="#dfdacd",
+        #             display_type=DISPLAY_TYPE.SPHERE,
+        #         ),
+        #         1: DisplayData(
+        #             name="ctype2",
+        #             color="#0080ff",
+        #             display_type=DISPLAY_TYPE.SPHERE,
+        #         ),
+        #     },
+        #     time_units=UnitData("m"),  # minutes
+        # )
+
+        # print("calling Simularium PhysicellConverter...\n")
+        # model_name = os.path.basename(self.current_xml_file)
+        # model_name = model_name[:-4]   # strip off .xml suffix
+        # PhysicellConverter(simularium_model_data).save(model_name)
+        # print(f"--> {model_name}.simularium")
+
+        # print("Load this model at: https://simularium.allencell.org/viewer")
+
+
+    #----------------------
     def template_cb(self):
         self.load_model("template")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./project.exe')
-            else:  
-                self.run_tab.exec_name.setText('./project')
+            # self.run_tab.exec_name.setText('./project')
+            self.run_tab.exec_name.setText('project')
+        if self.nanohub_flag:
+            self.rules_tab.rules_folder.setText('.')
+            # self.rules_tab.rules_file.setText("myrules.csv")
+            self.rules_tab.rules_file.setText("rules.csv")
+
+            tool_dir = os.environ['TOOLPATH']  # rwh: Beware! this is read-only
+            rules_file0 = os.path.join(tool_dir,'data',"rules_empty.csv")
+            # for template
+            rules_file1 = os.path.join(self.home_dir,"rules.csv")
+            shutil.copy(rules_file0, rules_file1)
 
     def biorobots_cb(self):
         # self.load_model("biorobots")
         # self.load_model("biorobots_flat")
         self.load_model("biorobots")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./biorobots.exe')
-            else:  
-                self.run_tab.exec_name.setText('./biorobots')
+            self.run_tab.exec_name.setText('biorobots')
+        if self.nanohub_flag:
+            self.rules_tab.rules_folder.setText('.')
+            self.rules_tab.rules_file.setText("myrules.csv")
 
     def tumor_immune_cb(self):
-        self.load_model("tumor_immune")
+        self.debug_tab.add_msg("\nstudio.py: tumor_immune_cb()-------------- call load_model")
+        # self.load_model("tumor_immune")
+
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./project.exe')
-            else:  
-                self.run_tab.exec_name.setText('./project')
+            self.run_tab.exec_name.setText('project')
+
+        if self.nanohub_flag:
+            # os.chdir(self.home_dir)
+            tool_dir = os.environ['TOOLPATH']  # rwh: Beware! this is read-only
+            self.debug_tab.add_msg("tumor_immune_cb(): tool_dir=TOOLPATH= "+tool_dir)
+
+            #------- copy the files needed for tumor_immune
+            # rules_file0 = Path(self.absolute_data_dir, "cell_rules.csv")
+            rules_file0 = os.path.join(tool_dir,'data',"cell_rules.csv")
+            self.debug_tab.add_msg("tumor_immune_cb(): rules_file0= "+rules_file0)
+            # rules_file1 = os.path.join(self.home_dir,'data',"cell_rules.csv")
+            self.debug_tab.add_msg("tumor_immune_cb(): self.home_dir= "+self.home_dir)
+            rules_file1 = os.path.join(self.home_dir,"cell_rules.csv")
+            self.debug_tab.add_msg("tumor_immune_cb(): rules_file1= "+rules_file1)
+            self.debug_tab.add_msg("tumor_immune_cb(): copy "+rules_file0+" to "+rules_file1)
+            # rules_file1 = Path(self.home_dir, "cell_rules.csv")
+            shutil.copy(rules_file0, rules_file1)
+            self.debug_tab.add_msg("tumor_immune_cb(): back from rules shutil.copy")
+
+
+            file0 = os.path.join(tool_dir,'data',"cells.csv")
+            self.debug_tab.add_msg("tumor_immune_cb(): = "+file0)
+            # rules_file1 = os.path.join(self.home_dir,'data',"cell_rules.csv")
+            self.debug_tab.add_msg("tumor_immune_cb(): self.home_dir= "+self.home_dir)
+            file1 = os.path.join(self.home_dir,"cells.csv")
+            self.debug_tab.add_msg("tumor_immune_cb(): file1= "+file1)
+            self.debug_tab.add_msg("tumor_immune_cb(): copy "+file0+" to "+file1)
+            shutil.copy(file0, file1)
+
+            # self.config_tab.csv_folder.setText(self.absolute_data_dir)
+            self.config_tab.csv_folder.setText(self.home_dir)
+            self.config_tab.csv_file.setText("cells.csv")
+            if self.rules_flag:
+                self.rules_tab.rules_folder.setText(self.home_dir)
+                self.rules_tab.rules_file.setText("cell_rules.csv")
+
+        self.load_model("tumor_immune")
 
     def cancer_biorobots_cb(self):
         self.load_model("cancer_biorobots")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./cancer_biorobots.exe')
-            else:  
-                self.run_tab.exec_name.setText('./cancer_biorobots')
+            self.run_tab.exec_name.setText('./cancer_biorobots')
 
     def hetero_cb(self):
         self.load_model("heterogeneity")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./heterogeneity.exe')
-            else:  
-                self.run_tab.exec_name.setText('./heterogeneity')
+            self.run_tab.exec_name.setText('./heterogeneity')
 
     def pred_prey_cb(self):
         self.load_model("pred_prey_farmer")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./pred_prey.exe')
-            else:  
-                self.run_tab.exec_name.setText('./pred_prey')
+            self.run_tab.exec_name.setText('./pred_prey')
 
     def virus_mac_cb(self):
         self.load_model("virus_macrophage")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./virus-sample.exe')
-            else:  
-                self.run_tab.exec_name.setText('./virus-sample')
+            self.run_tab.exec_name.setText('./virus-sample')
 
     def worm_cb(self):
         self.load_model("worm")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./worm.exe')
-            else:  
-                self.run_tab.exec_name.setText('./worm')
+            self.run_tab.exec_name.setText('./worm')
 
     def interactions_cb(self):
         self.load_model("interactions")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./interaction_demo.exe')
-            else:  
-                self.run_tab.exec_name.setText('./interaction_demo')
+            self.run_tab.exec_name.setText('./interaction_demo')
 
     def mechano_cb(self):
         self.load_model("mechano")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./mechano.exe')
-            else:  
-                self.run_tab.exec_name.setText('./mechano')
+            self.run_tab.exec_name.setText('./mechano')
 
     def cancer_immune_cb(self):
         self.load_model("cancer_immune3D_flat")
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./cancer_immune_3D.exe')
-            else:  
-                self.run_tab.exec_name.setText('./cancer_immune_3D')
+            self.run_tab.exec_name.setText('./cancer_immune_3D')
 
     def physiboss_cell_lines_cb(self):
         self.load_model("physiboss")
         # self.vis_tab.physiboss_vis_checkbox = None    # done in load_model
         if self.studio_flag:
-            if platform.system() == "Windows":
-                self.run_tab.exec_name.setText('./PhysiBoSS_Cell_Lines.exe')
-            else:  
-                self.run_tab.exec_name.setText('./PhysiBoSS_Cell_Lines')
+            self.run_tab.exec_name.setText('./PhysiBoSS_Cell_Lines')
 
     def subcell_cb(self):
         self.load_model("subcellular_flat")
@@ -1273,99 +1334,261 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
     def download_config_cb(self):
         if self.nanohub_flag:
+            cwd = os.getcwd()
+            self.debug_tab.add_msg("download_config_cb() ------------")
+            self.debug_tab.add_msg("        cwd= "+cwd)
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            # os.chdir("tmpdir")
             try:
-                if self.p is None:  # No process running.
-                    self.debug_tab.add_msg("   self.p is None; create QProcess()")
-                    self.debug_tab.add_msg("  cwd= " + os.getcwd())
-                    self.debug_tab.add_msg("doing: exportfile config.xml")
-                    self.p = QProcess()
-                    self.p.readyReadStandardOutput.connect(self.handle_stdout)
-                    self.p.readyReadStandardError.connect(self.handle_stderr)
-                    self.p.stateChanged.connect(self.handle_state)
-                    self.p.finished.connect(self.process_finished)  # Clean up once complete.
-                    self.p.start("exportfile config.xml")
-                else:
-                    self.debug_tab.add_msg("   self.p is NOT None; just return!")
+                self.debug_tab.add_msg("   trying to use os.system(exportfile tmpdir/config.xml)")
+                os.system("exportfile tmpdir/config.xml")
             except:
-                self.message("Unable to download config.xml")
-                print("Unable to download config.xml")
-                self.p = None
+                self.debug_tab.add_msg("   exception on: os.system(exportfile tmpdir/config.xml)")
         return
 
-    def download_rules_cb(self):
+    def download_rules_txt_cb(self):
         if self.nanohub_flag:
+            self.debug_tab.add_msg("download_rules_txt_cb() ------------")
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
             try:
-                if self.p is None:  # No process running.
-                    self.p = QProcess()
-                    self.p.readyReadStandardOutput.connect(self.handle_stdout)
-                    self.p.readyReadStandardError.connect(self.handle_stderr)
-                    self.p.stateChanged.connect(self.handle_state)
-                    self.p.finished.connect(self.process_finished)  # Clean up once complete.
-
-                    self.p.start("exportfile rules.csv")
-                else:
-                    self.debug_tab.add_msg(" download_rules_cb():  self.p is NOT None; just return!")
+                self.debug_tab.add_msg("   trying to use os.system(exportfile tmpdir/rules.txt)")
+                os.system("exportfile tmpdir/rules.txt")
             except:
-                self.message("Unable to download rules.csv")
-                print("Unable to download rules.csv")
-                self.p = None
+                self.debug_tab.add_msg("   Error: unable to download tmpdir/rules.txt")
         return
+
+    def download_rules_csv_cb(self):
+        if self.nanohub_flag:
+            self.debug_tab.add_msg("download_rules_csv_cb() ------------")
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            try:
+                self.debug_tab.add_msg("   trying to use os.system(exportfile rules.csv)")
+                os.system("exportfile rules.csv")
+            except:
+                self.debug_tab.add_msg("   Error: unable to download rules.csv")
+        return
+
+    # def zip_csv_fn(self):
+    #     self.debug_tab.add_msg(">>>> in zip_csv_fn()")
+    #     file_str = os.path.join(self.home_dir,'*.csv')
+    #     self.debug_tab.add_msg("   files_str="+file_str)
+    #     files_l = glob.glob(file_str)
+    #     # self.debug_tab.add_msg("   files_l="+files_l)
+    #     # file_str = "*.svg"
+    #     self.debug_tab.add_msg("   next, zip all .csv")
+    #     with zipfile.ZipFile('csv.zip', 'w') as myzip:
+    #         for f in glob.glob(file_str):
+    #             # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+    #             base_fname = os.path.basename(f)
+    #             self.debug_tab.add_msg("   base_fname="+base_fname)
+    #             # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+    #             myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+    #     # self.debug_tab.add_msg("   exportfile doing p.start(csv.zip)")
+    #     # self.p.start("exportfile csv.zip")
+    #     try:
+    #         os.system("exportfile csv.zip")
+    #     except:
+    #         self.debug_tab.add_msg("   zip_csv_fn(): exception on os.system(exportfile csv.zip)")
+    #         print("   zip_csv_fn(): exception on os.system(exportfile csv.zip)")
+
+    # def download_csv_thread_cb(self):
+    #     # Pass the function to execute
+    #     worker = Worker(self.zip_csv_fn) # Any other args, kwargs are passed to the run function
+    #     # worker.signals.result.connect(self.print_output)
+    #     # worker.signals.finished.connect(self.thread_complete)
+    #     # worker.signals.progress.connect(self.progress_fn)
+
+    #     self.threadpool.start(worker)
+
+    # def download_csv_cb_qprocess(self):
+    #     if self.nanohub_flag:
+    #         self.debug_tab.add_msg("download_csv_cb() ------------")
+    #         self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+    #         try:
+    #             self.debug_tab.add_msg("   in try block")
+    #             if self.p is None:  # No process running.
+    #                 self.debug_tab.add_msg("   starting QProcess")
+    #                 self.p = QProcess()
+    #                 self.debug_tab.add_msg("   QProcess 1")
+    #                 self.p.readyReadStandardOutput.connect(self.handle_stdout)
+    #                 self.debug_tab.add_msg("   QProcess 2")
+    #                 self.p.readyReadStandardError.connect(self.handle_stderr)
+    #                 self.debug_tab.add_msg("   QProcess 3")
+    #                 self.p.stateChanged.connect(self.handle_state)
+    #                 self.debug_tab.add_msg("   QProcess 4")
+    #                 self.p.finished.connect(self.process_finished)  # Clean up once complete.
+    #                 self.debug_tab.add_msg("   QProcess 5")
+
+    #                 # file_str = os.path.join(self.output_dir, '*.svg')
+    #                 # file_str = "*.csv"
+    #                 # print('-------- download_csv_cb(): zip up all ',file_str)
+    #                 file_str = os.path.join(self.home_dir,'*.csv')
+    #                 self.debug_tab.add_msg("   files_str="+files_str)
+    #                 files_l = glob.glob(file_str)
+    #                 # self.debug_tab.add_msg("   files_l="+files_l)
+    #                 # file_str = "*.svg"
+    #                 self.debug_tab.add_msg("   next, zip all .csv")
+    #                 with zipfile.ZipFile('csv.zip', 'w') as myzip:
+    #                     for f in glob.glob(file_str):
+    #                         # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+    #                         base_fname = os.path.basename(f)
+    #                         self.debug_tab.add_msg("   base_fname="+base_fname)
+    #                         # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+    #                         myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+    #                 self.debug_tab.add_msg("   doing p.start(exportfile csv.zip)")
+    #                 self.p.start("exportfile csv.zip")
+    #             else:
+    #                 self.debug_tab.add_msg(" download_csv_cb():  self.p is NOT None; just return!")
+    #                 print(" download_csv_cb():  self.p is NOT None; just return!")
+    #         except:
+    #             # self.message("Unable to download csv.zip")
+    #             print("Unable to download csv.zip")
+    #             self.p = None
+    #     return
+
+    def download_csv_cb(self):
+        if self.nanohub_flag:
+            self.debug_tab.add_msg("download_csv_cb() ------------")
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            try:
+                file_str = os.path.join(self.home_dir,'*.csv')
+                files_l = glob.glob(file_str)
+                # self.debug_tab.add_msg("   files_l="+files_l)
+                self.debug_tab.add_msg("   next, zip all .csv")
+                with zipfile.ZipFile('csv.zip', 'w') as myzip:
+                    for f in glob.glob(file_str):
+                    # for f in files_l:
+                        base_fname = os.path.basename(f)
+                        self.debug_tab.add_msg("   base_fname="+base_fname)
+                        # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                        myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+                self.debug_tab.add_msg("   lastly, os.system(exportfile csv.zip)")
+                os.system("exportfile csv.zip")
+            except:
+                self.debug_tab.add_msg("   Error: exception occurred")
+                print("   download_csv_cb(): Error: exception occurred")
+
 
     def download_svg_cb(self):
         if self.nanohub_flag:
+            self.debug_tab.add_msg("download_svg_cb() ------------")
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
             try:
-                if self.p is None:  # No process running.
-                    self.p = QProcess()
-                    self.p.readyReadStandardOutput.connect(self.handle_stdout)
-                    self.p.readyReadStandardError.connect(self.handle_stderr)
-                    self.p.stateChanged.connect(self.handle_state)
-                    self.p.finished.connect(self.process_finished)  # Clean up once complete.
-
-                    # file_str = os.path.join(self.output_dir, '*.svg')
-                    file_str = "*.svg"
-                    print('-------- download_svg_cb(): zip up all ',file_str)
-                    with zipfile.ZipFile('svg.zip', 'w') as myzip:
-                        for f in glob.glob(file_str):
-                            myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                    self.p.start("exportfile svg.zip")
-                else:
-                    # self.debug_tab.add_msg(" download_svg_cb():  self.p is NOT None; just return!")
-                    print(" download_svg_cb():  self.p is NOT None; just return!")
+                # os.chdir("tmpdir")
+                file_str = os.path.join(self.home_dir,'tmpdir','*.svg')
+                self.debug_tab.add_msg("   "+file_str)
+                # file_str = "*.svg"
+                self.debug_tab.add_msg("   next, zip all .svg")
+                # print('-------- download_svg_cb(): zip up all ',file_str)
+                with zipfile.ZipFile('svg.zip', 'w') as myzip:
+                    for f in glob.glob(file_str):
+                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                self.debug_tab.add_msg("   lastly, os.system(exportfile svg.zip)")
+                os.system("exportfile svg.zip")
+                # os.chdir("..")
             except:
-                self.message("Unable to download svg.zip")
-                print("Unable to download svg.zip")
-                self.p = None
+                self.debug_tab.add_msg("   Error: exception occurred")
+
         return
 
     def download_full_cb(self):
         if self.nanohub_flag:
+            self.debug_tab.add_msg("download_full_cb() ------------")
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
             try:
-                if self.p is None:  # No process running.
-                    self.p = QProcess()
-                    self.p.readyReadStandardOutput.connect(self.handle_stdout)
-                    self.p.readyReadStandardError.connect(self.handle_stderr)
-                    self.p.stateChanged.connect(self.handle_state)
-                    self.p.finished.connect(self.process_finished)  # Clean up once complete.
-
-                    # file_xml = os.path.join(self.output_dir, '*.xml')
-                    # file_mat = os.path.join(self.output_dir, '*.mat')
-                    file_xml = '*.xml'
-                    file_mat = '*.mat'
-                    print('-------- download_full_cb(): zip up all .xml and .mat')
-                    with zipfile.ZipFile('mcds.zip', 'w') as myzip:
-                        for f in glob.glob(file_xml):
-                            myzip.write(f, os.path.basename(f)) # 2nd arg avoids full filename path in the archive
-                        for f in glob.glob(file_mat):
-                            myzip.write(f, os.path.basename(f))
-                    self.p.start("exportfile mcds.zip")
-                else:
-                    # self.debug_tab.add_msg(" download_full_cb():  self.p is NOT None; just return!")
-                    print(" download_full_cb():  self.p is NOT None; just return!")
+                self.debug_tab.add_msg("   trying to use os.system(exportfile mcds.zip)")
+                    # file_str = os.path.join(self.output_dir, '*.svg')
+                file_xml = os.path.join(self.home_dir,'tmpdir', 'output*.xml')
+                self.debug_tab.add_msg("   "+file_xml)
+                file_mat = os.path.join(self.home_dir, 'tmpdir','output*.mat')
+                self.debug_tab.add_msg("   "+file_mat)
+                # print('-------- download_svg_cb(): zip up all ',file_str)
+                self.debug_tab.add_msg("   next, zip all .xml and .mat")
+                with zipfile.ZipFile('mcds.zip', 'w') as myzip:
+                    for f in glob.glob(file_xml):
+                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                    for f in glob.glob(file_mat):
+                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                self.debug_tab.add_msg("   lastly, os.system(exportfile mcds.zip)")
+                os.system("exportfile mcds.zip")
             except:
-                self.message("Unable to download mcds.zip")
-                print("Unable to download mcds.zip")
-                self.p = None
+                self.debug_tab.add_msg("   Error: exception occurred")
         return
+
+    def download_graph_cb(self):
+        if self.nanohub_flag:
+            self.debug_tab.add_msg("download_graph_cb() ------------")
+            try:
+                self.debug_tab.add_msg("   trying to use os.system(exportfile graph.zip)")
+                # os.chdir("tmpdir")
+                file_str = os.path.join(self.home_dir, 'tmpdir','output*.txt')
+                # file_str = "*.txt"
+                # print('-------- download_graph): zip up all ',file_str)
+                with zipfile.ZipFile('graph.zip', 'w') as myzip:
+                    for f in glob.glob(file_str):
+                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                os.system("exportfile graph.zip")
+                # os.chdir("..")
+            except:
+                self.debug_tab.add_msg("   Error: exception occurred")
+
+    #----------------------------------
+    def upload_config_cb(self):
+        if self.nanohub_flag:
+            cwd = os.getcwd()
+            self.debug_tab.add_msg("upload_config_cb() ------------")
+            self.debug_tab.add_msg("        cwd= "+cwd)
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            # os.chdir("tmpdir")
+            try:
+                self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
+                os.system("importfile mymodel.xml")
+            except:
+                self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
+
+
+    #-------------------------------------------------------------------------
+    def biorobots_nanohub_cb(self):
+        print("\n\n\n================ copy/load sample ======================================")
+        os.chdir(self.home_dir)
+        name = "biorobots_flat"
+        # sample_file = Path("data", name + ".xml")
+        # sample_file = Path(self.absolute_data_dir, name + ".xml")
+        sample_file = Path(self.pmb_data_dir, name + ".xml")
+        copy_file = "copy_" + name + ".xml"
+        shutil.copy(sample_file, copy_file)
+
+        # self.add_new_model(copy_file, True)
+        # self.config_file = "config_samples/" + name + ".xml"
+        self.config_file = copy_file
+        # self.show_sample_model()
+        # self.run_tab.exec_name.setText('../biorobots')
+
+        try:
+            print("biorobots_nanohub_cb():------------- copying ",sample_file," to ",copy_file)
+            shutil.copy(sample_file, copy_file)
+        except:
+            print("biorobots_nanohub_cb(): Unable to copy file(1).")
+            sys.exit(1)
+
+        try:
+            print("biorobots_nanohub_cb():------------- copying ",sample_file," to config.xml")
+            shutil.copy(sample_file, "config.xml")
+        except:
+            print("biorobots_nanohub_cb(): Unable to copy file(2).")
+            sys.exit(1)
+
+        self.add_new_model(copy_file, True)
+        self.config_file = copy_file
+        print("biorobots_nanohub_cb:   self.config_file = ",self.config_file)
+
+        self.show_sample_model()
+        if self.nanohub_flag:
+            self.run_tab.exec_name.setText('biorobots')
+        else:
+            self.run_tab.exec_name.setText('../biorobots')
+        self.vis_tab.show_edge = False
+        self.vis_tab.bgcolor = [1,1,1,1]
 
     #-----------------------------------------------------------------
 
@@ -1377,30 +1600,25 @@ def main():
     studio_flag = True
     model3D_flag = False
     tensor_flag = False
-    rules_flag = True
+    rules_flag = False
     skip_validate_flag = False
     nanohub_flag = False
     is_movable_flag = False
-    pytest_flag = False
-    biwt_flag = False
+    debug_flag = True
     try:
         parser = argparse.ArgumentParser(description='PhysiCell Studio.')
 
-        parser.add_argument("-b ", "--bare", "--basic", help="no plotting, etc ", action="store_true")
-        parser.add_argument("-3 ", "--three", "--3D", help="assume a 3D model", action="store_true")
-        parser.add_argument("-t ", "--tensor",  help="for 3D ellipsoid cells", action="store_true")
-        parser.add_argument("-r ", "--rules", "--Rules", help="display Rules tab" , action="store_true")
-        parser.add_argument("-x ", "--skip_validate", help="do not attempt to validate the config (.xml) file" , action="store_true")
+        parser.add_argument("-b", "--bare", "--basic", help="no plotting, etc ", action="store_true")
+        parser.add_argument("-3", "--three", "--3D", help="assume a 3D model", action="store_true")
+        parser.add_argument("-t", "--tensor",  help="for 3D ellipsoid cells", action="store_true")
+        # parser.add_argument("-r", "--rules", "--Rules", help="display Rules tab" , action="store_true")
+        parser.add_argument("-x", "--skip_validate", help="do not attempt to validate the config (.xml) file" , action="store_true")
         parser.add_argument("--nanohub", help="run as if on nanoHUB", action="store_true")
         # parser.add_argument("--is_movable", help="checkbox for mechanics is_movable", action="store_true")
-        parser.add_argument("-c ", "--config", type=str, help="config file (.xml)")
-        parser.add_argument("-e ", "--exec", type=str, help="executable model")
-        # parser.add_argument("-p ", "--pconfig", help="use config/PhysiCell_settings.xml", action="store_true")
-        parser.add_argument("--bioinf_import","--biwt", dest="biwt_flag", help="display bioinformatics walkthrough tab on ICs tab", action="store_true")
-        if platform.system() == "Windows":
-            exec_file = 'project.exe'
-        else:
-            exec_file = 'project'  # for template sample
+        parser.add_argument("-c", "--config", type=str, help="config file (.xml)")
+        parser.add_argument("-e", "--exec", type=str, help="executable model")
+
+        exec_file = 'project'  # for template sample
 
         # args = parser.parse_args()
         args, unknown = parser.parse_known_args()
@@ -1408,13 +1626,13 @@ def main():
         print("unknown=",unknown)
         if unknown:
             print("len(unknown)= ",len(unknown))
-            # if unknown[0] == "--rules" and len(unknown)==1:
-            #     print("studio.py: setting rules_flag = True")
-            #     rules_flag = True
-            # else:
-            print("Invalid argument(s): ",unknown)
-            print("Use '--help' to see options.")
-            sys.exit(-1)
+            if unknown[0] == "--rules" and len(unknown)==1:
+                print("studio.py: setting rules_flag = True")
+                rules_flag = True
+            else:
+                print("Invalid argument(s): ",unknown)
+                print("Use '--help' to see options.")
+                sys.exit(-1)
 
         # print("-- continue after if unknown...")
         if args.three:
@@ -1429,9 +1647,9 @@ def main():
             studio_flag = False
             model3D_flag = False
             # print("done with args.studio")
-        if args.rules:
-            logging.debug(f'studio.py: Show Rules tab')
-            rules_flag = True
+        # if args.rules:
+        #     logging.debug(f'studio.py: Show Rules tab')
+        #     rules_flag = True
         if args.nanohub:
             logging.debug(f'studio.py: nanoHUB mode')
             nanohub_flag = True
@@ -1462,27 +1680,11 @@ def main():
             else:
                 print("exec_file is NOT valid: ", args.exec)
                 sys.exit()
-        # if args.pconfig:
-        #     config_file = "config/PhysiCell_settings.xml"
-        #     if Path(config_file).is_file():
-        #         print("config/PhysiCell_settings.xml is valid")
-        #     else:
-        #         print("config_file is NOT valid: ", config_file)
-        #         sys.exit()
-        if args.biwt_flag:
-            biwt_flag = True
     except:
         # print("Error parsing command line args.")
         sys.exit(-1)
 
-    # fix the "missing" checkmarks when Paul does: ln -s ./studio/bin/studio.py pcs 
-    if os.path.islink(__file__):
-        print("studio.py:-------- __file__ is a symlink!!!")
-        print("symlink = ",os.readlink(__file__))
-        root = os.path.dirname(os.path.abspath(os.readlink(__file__)))
-    else:
-        root = os.path.dirname(os.path.abspath(__file__))
-
+    root = os.path.dirname(os.path.abspath(__file__))        
     # QDir.addSearchPath('themes', os.path.join(root, 'themes'))
     QtCore.QDir.addSearchPath('images', os.path.join(root, 'images'))
 
@@ -1490,7 +1692,6 @@ def main():
 
     icon_path = os.path.join(os.path.dirname(sys.modules[__name__].__file__), 'physicell_logo_200px.png')
     studio_app.setWindowIcon(QIcon(icon_path))
-    # studio_app.setApplicationName("Randy's app")   # argh, doesn't work
 
     # print(f'QStyleFactory.keys() = {QStyleFactory.keys()}')   # ['macintosh', 'Windows', 'Fusion']
 
@@ -1552,8 +1753,7 @@ def main():
             # print("Warning: Rules module not found.\n")
 
     # print("calling PhysiCellXMLCreator with rules_flag= ",rules_flag)
-    ex = PhysiCellXMLCreator(config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, pytest_flag, biwt_flag
-                             )
+    ex = PhysiCellXMLCreator(config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, debug_flag)
     print("size=",ex.size())  # = PyQt5.QtCore.QSize(1100, 770)
     # ex.setFixedWidth(1101)  # = PyQt5.QtCore.QSize(1100, 770)
     # print("width=",ex.size())
@@ -1587,21 +1787,4 @@ if __name__ == '__main__':
     logfile = "studio_debug.log"
     logging.basicConfig(filename=logfile, level=logging.DEBUG, filemode='w',)
     # logging.basicConfig(filename=logfile, level=logging.ERROR, filemode='w',)
-
-    # # trying/failing to change name on icon in Mac Dock from "pythonx.y" to something else (including .xml name)
-    # if sys.platform.startswith('darwin'):
-    #     try:
-    #         from Foundation import NSBundle
-    #         bundle = NSBundle.mainBundle()
-    #         print("\n\n ------------ studio.py:   bundle= ",bundle)
-    #         if bundle:
-    #             app_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-    #             print("------------ studio.py:   app_name= ",app_name)
-    #             app_info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-    #             print("\n\n ------------ studio.py:   app_info= ",app_info)
-    #             if app_info:
-    #                 app_info['CFBundleName'] = app_name
-    #     except ImportError:
-    #         pass
-
     main()
