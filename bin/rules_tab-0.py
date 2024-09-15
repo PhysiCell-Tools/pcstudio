@@ -25,11 +25,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
-from multivariate_rules import Window_plot_rules
-from studio_classes import ExtendedCombo
-from studio_functions import show_warning
 
 class RulesPlotWindow(QWidget):
     def __init__(self):
@@ -55,6 +51,55 @@ class RulesPlotWindow(QWidget):
     def close_plot_cb(self):
         self.close()
 #---------------------
+
+class ExtendedCombo( QComboBox ):
+    def __init__( self,  parent = None):
+        super( ExtendedCombo, self ).__init__( parent )
+
+        self.setFocusPolicy( Qt.StrongFocus )
+        self.setEditable( True )
+        self.completer = QCompleter( self )
+
+        # always show all completions
+        self.completer.setCompletionMode( QCompleter.UnfilteredPopupCompletion )
+        self.pFilterModel = QSortFilterProxyModel( self )
+        self.pFilterModel.setFilterCaseSensitivity( Qt.CaseInsensitive )
+
+        self.completer.setPopup( self.view() )
+
+        self.setCompleter( self.completer )
+
+        # self.lineEdit().textEdited[unicode].connect( self.pFilterModel.setFilterFixedString )
+        self.lineEdit().textEdited[str].connect( self.pFilterModel.setFilterFixedString )
+        self.completer.activated.connect(self.setTextIfCompleterIsClicked)
+
+    def setModel( self, model ):
+        super(ExtendedCombo, self).setModel( model )
+        self.pFilterModel.setSourceModel( model )
+        self.completer.setModel(self.pFilterModel)
+
+    def setModelColumn( self, column ):
+        self.completer.setCompletionColumn( column )
+        self.pFilterModel.setFilterKeyColumn( column )
+        super(ExtendedCombo, self).setModelColumn( column )
+
+    def view( self ):
+        return self.completer.popup()
+
+    def index( self ):
+        return self.currentIndex()
+
+    def setTextIfCompleterIsClicked(self, text):
+      if text:
+        index = self.findText(text)
+        self.setCurrentIndex(index)
+
+
+class QHLine(QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
 
 # Overloading the QCheckBox widget 
 class MyQCheckBox(QCheckBox):  # it's insane to have to do this!
@@ -521,12 +566,6 @@ class Rules(QWidget):
         hlayout2 = QHBoxLayout()
         hlayout2.addWidget(groupbox) 
 
-        self.plot_rules_button = QPushButton("Plot rules")
-        self.plot_rules_button.setFixedWidth(150)
-        self.plot_rules_button.setStyleSheet("background-color: lightgreen")
-        self.plot_rules_button.clicked.connect(self.plot_rules)
-        hlayout2.addWidget(self.plot_rules_button) 
-
         self.clear_button = QPushButton("Clear table")
         self.clear_button.setFixedWidth(150)
         self.clear_button.setStyleSheet("background-color: yellow")
@@ -838,24 +877,29 @@ class Rules(QWidget):
 
     #-----------------------------------------------------------
     def substrate_rename(self,idx,old_name,new_name):
-        # make a possible_superstrings list of the current cell types and substrates to check if the one being changed is a substring of any of these 
-        possible_superstrings = [self.celltype_combobox.itemText(i) for i in range(self.celltype_combobox.count())]
-        possible_superstrings += self.substrates
+        # print("rules_tab: substrate_rename(): idx,old_name,new_name= ",idx,old_name,new_name)
+        # print("        self.substrates= ",self.substrates)
+        original_list = self.substrates
+        # self.substrates = list(map(lambda x: x.replace(old_name, new_name), self.substrates))
         idx = self.substrates.index(old_name)
         self.substrates[idx] = new_name
         self.fill_signals_widget()
         self.fill_responses_widget()
-        self.find_and_replace_rules_table(old_name, new_name, possible_superstrings) # drb 24-05-20: not sure if find_and_replace_rules_table must come after the fill calls, but it works here so I'm just leaving it and recording the superstrings above
+        self.find_and_replace_rules_table(old_name, new_name, original_list)
 
     #-----------------------------------------------------------
     def delete_substrate(self,name):
+        # print(f"-------- rules_tab.py: delete_substrate(), self.substrates = {self.substrates}")
+        # print(f"     name = {name}")
         self.substrates.remove(name)
         self.fill_signals_widget()
         self.fill_responses_widget()
 
     #-----------------------------------------------------------
     def add_new_substrate(self,name):
+        # print("rules_tab: add_new_substrate(): name= ",name)
         self.substrates.append(name)
+        # print("        updated self.substrates= ",self.substrates)
         self.fill_signals_widget()
         self.fill_responses_widget()
 
@@ -874,30 +918,22 @@ class Rules(QWidget):
 
     #-----------------------------------------------------------
     def cell_def_rename(self,idx,old_name,new_name):
-        # make a possible_superstrings list of the current cell types and substrates to check if the one being changed is a substring of any of these 
-        possible_superstrings = [self.celltype_combobox.itemText(i) for i in range(self.celltype_combobox.count())]
-        possible_superstrings += self.substrates
-
+        # print("rules_tab: cell_def_rename(): idx,old_name,new_name= ",idx,old_name,new_name)
+        original_list = [self.celltype_combobox.itemText(i) for i in range(self.celltype_combobox.count())]
         self.celltype_combobox.setItemText(idx, new_name)
+        # print("rules_tab: cell_def_rename(): items in combobox= ",all_items)
         self.fill_signals_widget()
         self.fill_responses_widget()
-        self.find_and_replace_rules_table(old_name, new_name, possible_superstrings) # drb 24-05-20: not sure if find_and_replace_rules_table must come after the fill calls, but it works here so I'm just leaving it and recording the superstrings above
+        self.find_and_replace_rules_table(old_name, new_name, original_list)
 
 
     #-----------------------------------------------------------
     def celltype_combobox_changed_cb(self, idx):
         self.celltype_name = self.celltype_combobox.currentText()
+        # print("----------- celltype_combobox_changed_cb(): ", self.celltype_name)
         if self.signal:
             print("        signal= ", self.signal)
         print("          ", self.celldef_tab.param_d.keys())
-
-    #-----------------------------------------------------------
-    def custom_data_rename(self, old_name, new_name):
-        possible_superstrings = [self.celltype_combobox.itemText(i) for i in range(self.celltype_combobox.count())]
-        possible_superstrings += self.substrates
-        self.fill_signals_widget()
-        self.fill_responses_widget()
-        self.find_and_replace_rules_table(old_name, new_name, possible_superstrings)
 
     #-----------------------------------------------------------
     # ---- Behaviors:
@@ -913,12 +949,19 @@ class Rules(QWidget):
     # ["is_movable", "cell attachment rate", "cell detachment rate", "maximum number of cell attachments"]
     # Each cv = custom var name: ["custom:" + cv]
 
-    def update_base_value(self):
-        behavior = self.response_combobox.currentText()
-        self.update_base_value_by_name(behavior, True)
+        # for s in self.substrates:
+        #     self.response_l.append(s + " export")
+        # self.response_l.append("cycle entry")
+        # for idx in range(6):  # TODO: hardwired
+        #     self.response_l.append("exit from cycle phase " + str(idx))
+        # self.response_l += ["apoptosis","necrosis","migration speed","migration bias","migration persistence time"]
 
-    def update_base_value_by_name(self, behavior, update_widgets):
+    def update_base_value(self):
+        # print("\n-------update_base_value(self)")
+        behavior = self.response_combobox.currentText()
+        # key0 = self.celltype_name
         key0 = self.celltype_combobox.currentText()
+        print("     behavior=",behavior)
         btokens = behavior.split()
         if len(btokens) == 0:
             return
@@ -949,6 +992,8 @@ class Rules(QWidget):
                 if cycle_model_idx == 4 : base_val = self.celldef_tab.param_d[key0]['cycle_flowcytosep_trate30']
                         
         elif btokens[0] in self.substrates:
+            print(f"update_base_value(): {btokens[0]} is a substrate")
+            # key1 = btokens[0]
             key1 = 'secretion'
             key2 = btokens[0]
             if 'target' in btokens:
@@ -960,7 +1005,11 @@ class Rules(QWidget):
             else:  # just "<substrate> secretion" which mean its rate
                 key3 = "secretion_rate"
             try:
+                # print("\n---key0= ",self.celldef_tab.param_d[key0])
+                # print("\n---key1= ",self.celldef_tab.param_d[key0][key1])
+                # print("\n---key2= ",self.celldef_tab.param_d[key0][key1][key2])
                 base_val = self.celldef_tab.param_d[key0][key1][key2][key3]
+                print("update_base_value(): ------- base_val= ",base_val)
             except:
                 print("update_base_value(): ---- got exception")
                 return
@@ -994,30 +1043,18 @@ class Rules(QWidget):
             base_val = self.celldef_tab.param_d[key0]['mechanics_attachment_rate']
         elif behavior == "cell detachment rate":
             base_val = self.celldef_tab.param_d[key0]['mechanics_detachment_rate']
-        elif behavior == "maximum number of cell attachments":
-            base_val = self.celldef_tab.param_d[key0]['mechanics_max_num_attachments']
+        # elif behavior == "maximum number of cell attachments":
 
         elif btokens[0] == "phagocytose":
             print("--- handling phagocytose as token 0")
             print(btokens)
-            if len(btokens)==3 and btokens[2] == "cell" and btokens[1] in ["apoptotic","necrotic"]:
-                if btokens[1] == "apoptotic":
-                    print("--- handling phagocytose apoptotic cell")
-                    base_val = self.celldef_tab.param_d[key0]['apoptotic_phagocytosis_rate']
-                elif btokens[1] == "necrotic":
-                    print("--- handling phagocytose necrotic cell")
-                    base_val = self.celldef_tab.param_d[key0]['necrotic_phagocytosis_rate']
-            elif len(btokens)==4 and btokens[1] == "other" and btokens[2] == "dead" and btokens[3] == "cell":
-                print("--- handling phagocytose other dead cell")
-                base_val = self.celldef_tab.param_d[key0]['other_dead_phagocytosis_rate']
+            if len(btokens)==3 and btokens[1] == "dead" and btokens[2] == "cell":
+                print("--- handling phagocytose dead cell")
+                base_val = self.celldef_tab.param_d[key0]['dead_phagocytosis_rate']
             else:
                 cell_type = behavior[12:]   # length of "phagocytose" 
                 print("      cell_type (for phagocytose)=",cell_type)
                 base_val = self.celldef_tab.param_d[key0]['live_phagocytosis_rate'][cell_type]
-        elif behavior == "attack damage rate":
-            base_val = self.celldef_tab.param_d[key0]["attack_damage_rate"]
-        elif behavior == "attack duration":
-            base_val = self.celldef_tab.param_d[key0]["attack_duration"]
         elif btokens[0] == "attack":
             cell_type = behavior[7:]
             base_val = self.celldef_tab.param_d[key0]['attack_rate'][cell_type]
@@ -1033,8 +1070,6 @@ class Rules(QWidget):
             base_val = self.celldef_tab.param_d[key0]['transformation_rate'][cell_type]
         elif behavior == "damage rate":
             base_val = self.celldef_tab.param_d[key0]["damage_rate"]
-        elif behavior == "damage repair rate":
-            base_val = self.celldef_tab.param_d[key0]["damage_repair_rate"]
         elif "custom:" in btokens[0]:
             custom_data_name = btokens[0].split(':')[-1] # return string after colon
             print(custom_data_name, self.celldef_tab.param_d[key0]['custom_data'][custom_data_name])
@@ -1042,11 +1077,6 @@ class Rules(QWidget):
 
         #---------------------
         # Set the base value 
-        self.base_val = base_val
-
-        if not update_widgets:
-            return
-
         self.rule_base_val.setText(base_val)
 
         # Compute/set the saturation value
@@ -1054,16 +1084,8 @@ class Rules(QWidget):
             if "decreases" in self.up_down_combobox.currentText(): saturation_val = 0.0
             else: saturation_val = 1.0
         else:
-            if "decreases" in self.up_down_combobox.currentText(): 
-                # Avoid the annoying floating point epsilon (with lots of spurious 0s). Probably a better way.
-                idx_pt = str(float(base_val)).find('.')
-                num_decimal_digits = len(str(float(base_val))[idx_pt+1:])  # number of digits to right of '.'
-                saturation_val = self.scale_base_for_min * float(base_val)
-                saturation_val = round(saturation_val, num_decimal_digits+1) # "+ 1" only relevant for scaling ~= 0.1
-            else: 
-                saturation_val = self.scale_base_for_max * float(base_val)
-
-
+            if "decreases" in self.up_down_combobox.currentText(): saturation_val = self.scale_base_for_min * float(base_val)
+            else: saturation_val = self.scale_base_for_max * float(base_val)
             # behaviors with max response
             if ( behavior == 'migration bias' and saturation_val > 1 ): saturation_val = 1.0
             if ( behavior == 'is_movable' and saturation_val > 1 ): saturation_val = 1.0
@@ -1073,16 +1095,16 @@ class Rules(QWidget):
         # for ct in self.celldef_tab.param_d.keys():
             # print(self.celldef_tab.param_d[ct])
 
-        # rwh: create this list once.  EDIT: Not sure what I was thinking here...
+        # rwh: create this list once
         # static_names = []
-        # static_names = ["cycle entry"]
+        static_names = ["cycle entry"]
 
-        # static_names += ["apoptosis", "necrosis", "migration speed", "migration bias", "migration persistence time"]
-        # # static_names += ["chemotactic response to " + s]
-        # static_names += ["cell-cell adhesion", "cell-cell adhesion elastic constant"]
-        # # Each ct = cell type name: ["adhesive affinity to " + ct]
-        # static_names += ["relative maximum adhesion distance", "cell-cell repulsion", "cell-BM adhesion", "cell-BM repulsion", "phagocytose dead cell"]
-        # static_names += ["is_movable", "cell attachment rate", "cell detachment rate", "maximum number of cell attachments"]
+        static_names += ["apoptosis", "necrosis", "migration speed", "migration bias", "migration persistence time"]
+        # static_names += ["chemotactic response to " + s]
+        static_names += ["cell-cell adhesion", "cell-cell adhesion elastic constant"]
+        # Each ct = cell type name: ["adhesive affinity to " + ct]
+        static_names += ["relative maximum adhesion distance", "cell-cell repulsion", "cell-BM adhesion", "cell-BM repulsion", "phagocytose dead cell"]
+        static_names += ["is_movable", "cell attachment rate", "cell detachment rate", "maximum number of cell attachments"]
 
         # static_names = ["exit from cycle phase " + str(idx)], idx=0,1,…,5   (isn’t “smart” to match cell type’s cycle)
         # [verb + ct] where verb=["phagocytose ","attack ","fuse to ","transform to ","immunogenicity to "]
@@ -1094,47 +1116,41 @@ class Rules(QWidget):
 
     #-----------------------------------------------------------
     def signal_combobox_changed_cb(self, idx):
+
         self.signal = self.signal_combobox.currentText()
+        # print("signal_combobox_changed_cb(): ", self.celldef_tab.param_d.keys())
+        # print(f"    '{self.celltype_name}' keys= {self.celldef_tab.param_d[self.celltype_name].keys()}")
+
+        # self.update_base_value()
+
+    #   * param_d[cell_type]['custom_data'][custom_var_name] = [value, conserved_flag]
+        # print("(dropdown) cell_adhesion_affinity= ",self.param_d[self.current_cell_def]["cell_adhesion_affinity"])
+        # if self.cell_adhesion_affinity_celltype in self.param_d[self.current_cell_def]["cell_adhesion_affinity"].keys():
+        #     self.cell_adhesion_affinity.setText(self.param_d[self.current_cell_def]["cell_adhesion_affinity"][self.cell_adhesion_affinity_celltype])
+        # else:
+        #     self.cell_adhesion_affinity.setText(self.default_affinity)
+
+        # if idx == -1:
+        #     return
 
     #-----------------------------------------------------------
     def response_combobox_changed_cb(self, idx):
+        print("------- response_combobox_changed_cb(): idx={idx}")
+
+        self.behavior = self.response_combobox.currentText()
+        # print("response_combobox_changed_cb(): ", self.celldef_tab.param_d.keys())
+        # print(f"    {self.celltype_name} params= {self.celldef_tab.param_d[self.celltype_name]}")
+
         self.update_base_value()
 
-    #-----------------------------------------------------------
-    def plot_rules(self):
-        dataframe = pd.DataFrame(columns=['cell', 'signal', 'direction', 'behavior', 'saturation', 'half_max', 'hill_power', 'dead', 'base_behavior'])
-        dataframe = dataframe.astype({'cell':str, 'signal':str, 'direction':str, 'behavior':str, 'saturation':float, 'half_max':float, 'hill_power':int,  'dead':int,  'base_behavior':float})
-        for irow in range(self.max_rule_table_rows):
-            cell_irow = self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
-            if (cell_irow == ''): 
-                if irow == 0: return # No rules
-                else: break # empty line
-            signal_irow = self.rules_table.cellWidget(irow, self.rules_signal_idx).text()
-            direction_irow = self.rules_table.cellWidget(irow, self.rules_direction_idx).text()
-            behavior_irow = self.rules_table.cellWidget(irow, self.rules_response_idx).text()
-            saturation_irow = float(self.rules_table.cellWidget(irow, self.rules_maxval_idx).text())
-            halfmax_irow = float(self.rules_table.cellWidget(irow, self.rules_halfmax_idx).text())
-            hillpower_irow = int(self.rules_table.cellWidget(irow, self.rules_hillpower_idx).text())
-            if self.rules_table.cellWidget(irow,self.rules_applydead_idx).isChecked():
-                dead_irow = 1
-            else:
-                dead_irow = 0
-            # base value
-            self.update_base_value_by_name(behavior_irow, False) # It's not the better approach
-            base_behavior_irow = self.base_val
+        # print("(dropdown) cell_adhesion_affinity= ",self.param_d[self.current_cell_def]["cell_adhesion_affinity"])
+        # if self.cell_adhesion_affinity_celltype in self.param_d[self.current_cell_def]["cell_adhesion_affinity"].keys():
+        #     self.cell_adhesion_affinity.setText(self.param_d[self.current_cell_def]["cell_adhesion_affinity"][self.cell_adhesion_affinity_celltype])
+        # else:
+        #     self.cell_adhesion_affinity.setText(self.default_affinity)
 
-            if base_behavior_irow == '??':  # don't think we ever have this now
-                if "decreases" in direction_irow: base_behavior_irow = 1.0
-                else: base_behavior_irow = 0.0
-            else: 
-                base_behavior_irow = float(base_behavior_irow)
-            # print({'cell':cell_irow, 'signal':signal_irow, 'direction':direction_irow, 'behavior':behavior_irow, 'saturation':saturation_irow, 
-            #                   'half_max':halfmax_irow, 'hill_power':hillpower_irow, 'dead':dead_irow, 'base_behavior':base_behavior_irow})
-            dataframe = dataframe._append({'cell':cell_irow, 'signal':signal_irow, 'direction':direction_irow, 'behavior':behavior_irow, 'saturation':saturation_irow, 
-                              'half_max':halfmax_irow, 'hill_power':hillpower_irow, 'dead':dead_irow, 'base_behavior':base_behavior_irow}, ignore_index = True)
-        # print(dataframe)
-        self.RulesWindow = Window_plot_rules(dataframe=dataframe)
-        self.RulesWindow.show()
+        # if idx == -1:
+        #     return
 
     #-----------------------------------------------------------
     def clear_rules(self):
@@ -1154,7 +1170,7 @@ class Rules(QWidget):
             # if raw: yield raw
             # print(row)
             raw = row.split('/')[0].strip()
-            # print("rules_tab.py: strip_comments(): raw=",raw)
+            # print(raw)
             if raw: yield raw
 
     #-----------------------------------------------------------
@@ -1172,7 +1188,7 @@ class Rules(QWidget):
             except:
                 print("argh, exception opening or reading")
                 msg = "fill_rules(): " + full_rules_fname + " is using v1 syntax. Please upgrade."
-                show_warning(msg)
+                self.show_warning(msg)
                 return
                 # sys.exit(1)
 
@@ -1194,41 +1210,37 @@ class Rules(QWidget):
                             cell_type = elm[0]
                             if cell_type not in self.celldef_tab.param_d.keys():
                                 print(f'ERROR: {cell_type} is not a valid cell type name')
-                                show_warning(f'ERROR: {cell_type} is not a valid cell type name')
+                                self.show_warning(f'ERROR: {cell_type} is not a valid cell type name')
                                 return
 
                                 # self.rules_table.setCellWidget(irow, self.custom_icol_name, w_varname)   # 1st col
-                            self.fill_rule_row(irow, elm)
+                            for icol in range(self.max_rule_table_cols-2): 
+                                # print("icol=",icol)
+                                self.rules_table.cellWidget(irow, icol).setText(elm[icol])
+                            self.rules_table.cellWidget(irow, 8).setText('??') # load base value
+
+                            # if int(elm[7]) == 0:  # hard-code
+                            if int(elm[self.max_rule_table_cols-2]) == 0:
+                                print("setting dead checkbox False")
+                                self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(False)
+                            else:
+                                print("setting dead checkbox True")
+                                self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(True)
 
                         elif len(elm) == 9:   # v1
                             print(f'\n\n  WARNING: fill_rules(): {full_rules_fname} is using v1 syntax. Please upgrade\n')
                             msg = "fill_rules(): " + full_rules_fname + " is using v1 syntax. Please upgrade."
-                            show_warning(msg)
+                            self.show_warning(msg)
                             return
                         else:
                             print(f'\n\n  WARNING: fill_rules(): {full_rules_fname} has unknown syntax\n')
-                            msg = f"fill_rules(): {full_rules_fname} has unknown syntax. len(elm)={len(elm)}"
-                            show_warning(msg)
+                            msg = "fill_rules(): " + full_rules_fname + " has unknown syntax."
+                            self.show_warning(msg)
                             return
 
-                        if elm[self.rules_response_idx] == "phagocytose dead cell":
-                            # apply this rule to all new phagocytosis rates of dead cells
-                            self.rules_table.cellWidget(irow, self.rules_response_idx).setText("phagocytose apoptotic cell")
+                        # if elm[0][0] == '#' or elm[0][0] == '/':
+                        #     continue
 
-                            irow += 1
-                            elm[self.rules_response_idx] = "phagocytose necrotic cell"
-                            self.fill_rule_row(irow, elm)
-
-                            irow += 1
-                            elm[self.rules_response_idx] = "phagocytose other dead cell"
-                            self.fill_rule_row(irow, elm)
-
-                        if elm[self.rules_response_idx] == "damage rate" and hasattr(self.celldef_tab, "pre_v1_14_0_damage_rate") and self.celldef_tab.pre_v1_14_0_damage_rate:
-                            self.rules_table.cellWidget(irow, self.rules_response_idx).setText("attack damage rate")
-                            msg = "\"damage rate\" no longer refers to the rate of damage dealt, but rather the rate at which damage accumulates in the given cell type."
-                            msg += f"\n{elm[0]} had a rule affecting \"damage rate\" that has been replaced with \"attack damage rate\" to fit the new version."
-                            msg += "\nThis is because \"damage rate\" was found in the config file where \"attack damage rate\" is now used."
-                            self.show_warning(msg)
 
                         irow += 1
 
@@ -1240,14 +1252,13 @@ class Rules(QWidget):
             # self.dialog_critical(str(e))
             # print("error opening config/cells_rules.csv")
                 print(f'rules_tab.py: Error opening or reading {full_rules_fname}')
-                show_warning(f'rules_tab.py: Error opening or reading {full_rules_fname}')
+                self.show_warning(f'rules_tab.py: Error opening or reading {full_rules_fname}')
                 # logging.error(f'rules_tab.py: Error opening or reading {full_rules_fname}')
                 # sys.exit(1)
         else:
-            if self.rules_enabled_attr:
-                print(f'\n\n!!!  WARNING: fill_rules(): {full_rules_fname} is not a valid file !!!\n')
-                msg = "fill_rules(): " + full_rules_fname + " not valid"
-                show_warning(msg)
+            print(f'\n\n!!!  WARNING: fill_rules(): {full_rules_fname} is not a valid file !!!\n')
+            msg = "fill_rules(): " + full_rules_fname + " not valid"
+            self.show_warning(msg)
             # logging.error(f'fill_rules(): {full_rules_fname} is not a valid file')
 
     # else:  # should empty the Rules tab
@@ -1256,38 +1267,23 @@ class Rules(QWidget):
     #     self.rules_file.setText("")
         return
 
-    def fill_rule_row(self, irow, elm):
-        for icol in range(self.max_rule_table_cols-2): 
-            # print("icol=",icol)
-            self.rules_table.cellWidget(irow, icol).setText(elm[icol])
-        self.rules_table.cellWidget(irow, 8).setText('??') # load base value
-
-        # if int(elm[7]) == 0:  # hard-code
-        if int(elm[self.max_rule_table_cols-2]) == 0:
-            print("setting dead checkbox False")
-            self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(False)
-        else:
-            print("setting dead checkbox True")
-            self.rules_table.cellWidget(irow,self.rules_applydead_idx).setChecked(True)
     #-----------------------------------------------------------
     def hill(self, x, base_val = 0.0, saturation_val = 1.0, half_max = 0.5 , hill_power = 2 ):
         z = (x / half_max)** hill_power; 
         return base_val + (saturation_val-base_val)*(z/(1.0 + z)); 
 
-    #--------------------------------------------------------
-    # plot a new rule being defined
     def plot_new_rule_cb(self):
         try:
             # print("\n------------- plot_new_rule_cb()")
             signal = self.signal_combobox.currentText()
             # print("------------- plot_new_rule_cb(): signal= ",signal)
             if not self.valid_signal(signal):
-                show_warning( "Invalid signal: " + signal)
+                self.show_warning( "Invalid signal: " + signal)
                 return
             behavior = self.response_combobox.currentText()
             # print("n------------- plot_new_rule_cb(): behavior= ",behavior)
             if not self.valid_behavior(behavior):
-                show_warning("Invalid behavior: " + behavior)
+                self.show_warning("Invalid behavior: " + behavior)
                 return
             # Check if saturation value is compatible with increase/decrease behaviour
             direction = self.up_down_combobox.currentText()
@@ -1299,10 +1295,10 @@ class Rules(QWidget):
             saturation_val = float(self.rule_max_val.text())
             # print(base_val,saturation_val, direction)            
             if ( (saturation_val < base_val) and "increases" in self.up_down_combobox.currentText() ): 
-                show_warning(f"Error: Behavior {behavior} cannot be increased with the given [Saturation value]. [Saturation value] must be greater than [Base value].")
+                self.show_warning(f"Error: Behavior {behavior} cannot be increased with the given [Saturation value]. [Saturation value] must be greater than [Base value].")
                 return
             if ( (saturation_val > base_val) and "decreases" in self.up_down_combobox.currentText() ): 
-                show_warning(f"Error: Behavior {behavior} cannot be decreased with the given [Saturation value]. [Saturation value] must be lower than [Base value].")
+                self.show_warning(f"Error: Behavior {behavior} cannot be decreased with the given [Saturation value]. [Saturation value] must be lower than [Base value].")
                 return  
         except:
             print("\n------------- plot_new_rule_cb(): got exception validating signal, behavior. Return.")
@@ -1373,35 +1369,6 @@ class Rules(QWidget):
             return False
 
     #-----------------------------------------------------------
-    def check_for_duplicate(self, cell_type_new,signal_new,behavior_new,direction_new):
-        print("check_for_duplicate(): num_rules=",self.num_rules)
-        # for irow in range(self.max_rule_table_rows):
-        for irow in range(self.num_rules):
-        # self.rules_celltype_idx = 0
-        # self.rules_response_idx = 1
-        # self.rules_minval_idx = 2
-        # self.rules_baseval_idx = 3
-        # self.rules_maxval_idx = 4
-        # self.rules_signal_idx = 5
-        # self.rules_direction_idx = 6
-        # self.rules_halfmax_idx = 7
-        # self.rules_hillpower_idx = 8
-        # self.rules_applydead_idx = 9
-            cell_type = self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
-            # if cell_type == '':
-                # break
-            if cell_type == cell_type_new:
-                signal = self.rules_table.cellWidget(irow, self.rules_signal_idx).text()
-                if signal == signal_new:
-                    behavior = self.rules_table.cellWidget(irow, self.rules_response_idx).text()
-                    if behavior == behavior_new:
-                        direction = self.rules_table.cellWidget(irow, self.rules_direction_idx).text()
-                        if direction == direction_new:
-                            return irow
-
-        return -1
-
-    #-----------------------------------------------------------
     def add_rule_cb(self):
 
         try:
@@ -1409,37 +1376,27 @@ class Rules(QWidget):
             signal = self.signal_combobox.currentText()
             # print("------------- add_rule_cb(): signal= ",signal)
             if not self.valid_signal(signal):
-                show_warning( "Invalid signal: " + signal)
+                self.show_warning( "Invalid signal: " + signal)
                 return
             behavior = self.response_combobox.currentText()
             # print("n------------- add_rule_cb(): behavior= ",behavior)
             if not self.valid_behavior(behavior):
-                show_warning("Invalid behavior: " + behavior)
+                self.show_warning("Invalid behavior: " + behavior)
                 return
+            # Check if saturation value is compatible with increase/decrease behaviour
             direction = self.up_down_combobox.currentText()
-            # Avoid this in PhysiCell: "Warning! Signal substrate was already part of the rule. Ignoring input."
-            dup_rule = self.check_for_duplicate(self.celltype_combobox.currentText(), signal, behavior, direction)
-            if dup_rule >= 0:
-                show_warning(f"Error: You already have this signal-behavior defined for this cell type (row {dup_rule}). Either delete the rule in the table first or edit it manually.")
-                return
-
-
             base_val = self.rule_base_val.text()
             if base_val == '??':
                 if "decreases" in self.up_down_combobox.currentText(): base_val = 1.0
                 else: base_val = 0.0
             else: base_val = float(base_val)
             saturation_val = float(self.rule_max_val.text())
-
-            direction = self.up_down_combobox.currentText()
-
-            # Check if saturation value is compatible with increase/decrease behaviour
             # print(base_val,saturation_val, direction)            
             if ( (saturation_val < base_val) and "increases" in self.up_down_combobox.currentText() ): 
-                show_warning(f"Error: Behavior {behavior} cannot be increased with the given [Saturation value]. [Saturation value] must be greater than [Base value].")
+                self.show_warning(f"Error: Behavior {behavior} cannot be increased with the given [Saturation value]. [Saturation value] must be greater than [Base value].")
                 return
             if ( (saturation_val > base_val) and "decreases" in self.up_down_combobox.currentText() ): 
-                show_warning(f"Error: Behavior {behavior} cannot be decreased with the given [Saturation value]. [Saturation value] must be lower than [Base value].")
+                self.show_warning(f"Error: Behavior {behavior} cannot be decreased with the given [Saturation value]. [Saturation value] must be lower than [Base value].")
                 return  
         except:
             print("\n------------- add_rule_cb(): got exception validating signal, behavior. Return.")
@@ -1484,7 +1441,7 @@ class Rules(QWidget):
             self.rules_table.cellWidget(irow, self.rules_celltype_idx).setText( self.celltype_combobox.currentText() )
         except:
             msg = f'add_rule_cb() Error: irow={irow}, idx={self.rules_celltype_idx}, widget={self.rules_table.cellWidget(irow, self.rules_celltype_idx)}.'
-            show_warning(msg)
+            self.show_warning(msg)
             return 
 
         self.rules_table.cellWidget(irow, self.rules_signal_idx).setText( self.signal_combobox.currentText() )
@@ -1634,7 +1591,7 @@ class Rules(QWidget):
         # if row < 0:
         if (row < 0) or (row+1 > self.num_rules) or (self.num_rules <= 0):
             msg = f'Error: Select a row with a rule before deleting.'
-            show_warning(msg)
+            self.show_warning(msg)
             return
         # varname = self.custom_data_table.cellWidget(row,self.custom_icol_name).text()
         # print(" custom var name= ",varname)
@@ -1661,7 +1618,7 @@ class Rules(QWidget):
                 self.rules_table.cellWidget(irow,self.rules_celltype_idx).wrow -= 1  # sufficient to only decr the "name" column
             except:
                 msg = f'Warning: could not decrement row {irow} from the Rules table. Select a row before deleting.'
-                show_warning(msg)
+                self.show_warning(msg)
                 return
 
             # print(f"   after removing {varname}, master_custom_var_d= ",self.master_custom_var_d)
@@ -1683,22 +1640,22 @@ class Rules(QWidget):
 
         irow = self.rules_table.currentRow()
         if irow < 0:
-            show_warning( "Select (click on) a row to plot.")
+            self.show_warning( "Select (click on) a row to plot.")
             return
 
         try:
-            # print("\n------------- plot_rule_cb():  irow=",irow)
+            print("\n------------- plot_rule_cb():  irow=",irow)
             signal = self.rules_table.cellWidget(irow, self.rules_signal_idx).text()
-            # print("\n------------- plot_rule_cb():  signal=",signal)
+            print("\n------------- plot_rule_cb():  signal=",signal)
             # print("------------- plot_rule_cb(): signal= ",signal)
             if not self.valid_signal(signal):
-                show_warning( "Invalid signal: " + signal)
+                self.show_warning( "Invalid signal: " + signal)
                 return
             behavior = self.rules_table.cellWidget(irow, self.rules_response_idx).text()
-            # print("\n------------- plot_rule_cb():  behavior=",behavior)
+            print("\n------------- plot_rule_cb():  behavior=",behavior)
             # print("n------------- plot_rule_cb(): behavior= ",behavior)
             if not self.valid_behavior(behavior):
-                show_warning("Invalid behavior: " + behavior)
+                self.show_warning("Invalid behavior: " + behavior)
                 return
         except:
             print("\n------------- plot_rule_cb(): got exception validating signal, behavior. Return.")
@@ -1708,10 +1665,10 @@ class Rules(QWidget):
         
         if (irow < 0) or (self.num_rules == 0):
             msg = "You need to select a row in the table"
-            show_warning(msg)
+            self.show_warning(msg)
             return
 
-        # print("------------- plot_rule_cb(), irow=",irow)
+        print("------------- plot_rule_cb(), irow=",irow)
         # rule_str = self.rules_table.cellWidget(irow, self.rules_celltype_idx).text()
         # rule_str += self.rules_table.cellWidget(irow, self.rules_response_idx).text()
         # rule_str += self.rules_table.cellWidget(irow, self.rules_minval_idx).text()
@@ -1727,38 +1684,18 @@ class Rules(QWidget):
         # min_val = float(self.rules_table.cellWidget(irow, self.rules_minval_idx).text())
         
         half_max = float(self.rules_table.cellWidget(irow, self.rules_halfmax_idx).text())
-
-        # NO! Use the actual base value in the appropriate subtab for behavior
-        # base_val = self.rules_table.cellWidget(irow, self.rules_baseval_idx).text()
+        base_val = self.rules_table.cellWidget(irow, self.rules_baseval_idx).text()
         hill_power = int(self.rules_table.cellWidget(irow, self.rules_hillpower_idx).text())
-
-        behavior = self.rules_table.cellWidget(irow, self.rules_response_idx).text()
-        self.update_base_value_by_name(behavior, False)
-        base_val = self.base_val
-
-        if base_val == '??':  # don't think we ever have this now
+        if base_val == '??':
             if "decreases" in self.rules_table.cellWidget(irow, self.rules_direction_idx).text(): base_val = 1.0
             else: base_val = 0.0
         else: 
             base_val = float(base_val)
         saturation_val = float(self.rules_table.cellWidget(irow, self.rules_maxval_idx).text())
-
-        # rwh: reading the user's mind
-        direction_str = self.rules_table.cellWidget(irow, self.rules_direction_idx).text()
-        if (saturation_val > base_val) and direction_str == "decreases":
-            msg = f'saturation ({saturation_val}) is > base {base_val}, so we will change the Direction to "increases"'
-            show_warning(msg)
-            self.rules_table.cellWidget(irow, self.rules_direction_idx).setText( "increases" )
-        elif (saturation_val < base_val) and direction_str == "increases": 
-            msg = f'saturation ({saturation_val}) is < base {base_val}, so we will change the Direction to "decreases"'
-            show_warning(msg)
-            self.rules_table.cellWidget(irow, self.rules_direction_idx).setText( "decreases" )
-
         
         X = np.linspace(0.0, 2.0 * half_max, 101)   # guess max = 2 * half-max
 
         Y = self.hill(X, base_val=base_val, saturation_val=saturation_val, half_max=half_max, hill_power=hill_power)
-        # Y = self.hill(X, base_val=self.base_val, saturation_val=saturation_val, half_max=half_max, hill_power=hill_power)
     
         self.rules_plot.ax0.plot(X,Y,'r-')
         self.rules_plot.ax0.grid()
@@ -1855,7 +1792,7 @@ class Rules(QWidget):
                 # f.write(rules_text )
                 # print("rules_tab.py: save_rules_cb(): self.num_rules= ",self.num_rules)
                 # for irow in range(self.num_rules):
-                for irow in range(self.max_rule_table_rows):
+                for irow in range(100):   # rwh: hack
         # self.rules_celltype_idx = 0
         # self.rules_response_idx = 1
         # self.rules_minval_idx = 2
@@ -1951,96 +1888,95 @@ class Rules(QWidget):
         self.signal_l.clear()
         self.signal_combobox.clear()
 
-        self.signal_l = self.create_signal_list()
+        # print("\n       fill_signals_widget(): self.substrates= ",self.substrates)
 
-        self.signal_combobox.addItems(self.signal_l)
-
-        self.signal_combobox.setCurrentIndex(0)
-
-    def create_signal_list(self):
-        signal_l = []
         for s in self.substrates:
-            signal_l.append(s)
+            self.signal_l.append(s)
         for s in self.substrates:
-            signal_l.append("intracellular " + s)
+            self.signal_l.append("intracellular " + s)
         for s in self.substrates:
-            signal_l.append(s + " gradient")
+            self.signal_l.append(s + " gradient")
 
-        signal_l += ["pressure","volume"]
+        self.signal_l += ["pressure","volume"]
 
         # print("       self.celldef_tab.param_d.keys()= ",self.celldef_tab.param_d.keys())
         for ct in self.celldef_tab.param_d.keys():
-            signal_l.append("contact with " + ct)
+            self.signal_l.append("contact with " + ct)
 
         # special
-        signal_l += ["contact with live cell","contact with dead cell","contact with BM","damage","dead","total attack time","time","apoptotic","necrotic"]
+        self.signal_l += ["contact with live cell","contact with dead cell","contact with BM","damage","dead","total attack time","time","apoptotic","necrotic"]
 
         # append all custom data (but *only* for a single cell_def!)
         cell_def0 = list(self.celldef_tab.param_d.keys())[0]
         for custom_var in list(self.celldef_tab.param_d[cell_def0]['custom_data'].keys()):
             signal_name = "custom:" + custom_var
-            signal_l.append(signal_name)
+            self.signal_l.append(signal_name)
 
-        return signal_l
+
+        #---- finally, use the self.signal_l list to create the combobox entries
+        self.signal_combobox.clear()
+        # for idx,signal in enumerate(self.signal_l):
+        #     item = QStandardItem(signal)
+        #     # print("     idx,signal,item=",idx,signal,item)
+        #     self.signal_model.setItem(idx, 0, item)
+        self.signal_combobox.addItems(self.signal_l)
+
+        self.signal_combobox.setCurrentIndex(0)
 
     #-----------------------------------------------------------
     def fill_responses_widget(self):
         self.response_l.clear()
         self.response_combobox.clear()
 
-        self.response_l = self.create_response_list()
-        #---- finally, use the self.response_l list to create the combobox entries
-        #     self.response_model.setItem(idx, 0, item)
-        self.response_combobox.addItems(self.response_l)
-
-        self.response_combobox.setCurrentIndex(0)
-        self.celldef_tab.fill_responses_widget(self.response_l + ["Volume"]) # everything else is lowercase, but this can stand out because it's not a true behavior, but rather the unique non-behavior that can be set by ICs
-
-    def create_response_list(self):
         # TODO: figure out how best to organize these responses
-        response_l = []
         for s in self.substrates:
-            response_l.append(s + " secretion")
+            self.response_l.append(s + " secretion")
         for s in self.substrates:
-            response_l.append(s + " secretion target")
+            self.response_l.append(s + " secretion target")
         for s in self.substrates:
-            response_l.append(s + " uptake")
+            self.response_l.append(s + " uptake")
         for s in self.substrates:
-            response_l.append(s + " export")
-        response_l.append("cycle entry")
-        response_l.append("attack damage rate")
-        response_l.append("attack duration")
-        response_l.append("damage rate")
-        response_l.append("damage repair rate")
+            self.response_l.append(s + " export")
+        self.response_l.append("cycle entry")
+        self.response_l.append("damage rate")
         for idx in range(6):  # TODO: hardwired
-            response_l.append("exit from cycle phase " + str(idx))
+            self.response_l.append("exit from cycle phase " + str(idx))
 
-        response_l += ["apoptosis","necrosis","migration speed","migration bias","migration persistence time"]
+        self.response_l += ["apoptosis","necrosis","migration speed","migration bias","migration persistence time"]
 
         for s in self.substrates:
-            response_l.append("chemotactic response to " + s)
+            self.response_l.append("chemotactic response to " + s)
 
-        response_l += ["cell-cell adhesion", "cell-cell adhesion elastic constant"]
+        self.response_l += ["cell-cell adhesion", "cell-cell adhesion elastic constant"]
 
         for ct in self.celldef_tab.param_d.keys():
-            response_l.append("adhesive affinity to " + ct)
+            self.response_l.append("adhesive affinity to " + ct)
 
         # special
-        response_l += ["relative maximum adhesion distance","cell-cell repulsion","cell-BM adhesion","cell-BM repulsion","phagocytose apoptotic cell","phagocytose necrotic cell","phagocytose other dead cell"]
+        self.response_l += ["relative maximum adhesion distance","cell-cell repulsion","cell-BM adhesion","cell-BM repulsion","phagocytose dead cell"]
 
         for verb in ["phagocytose ","attack ","fuse to ","transform to ","immunogenicity to "]:  # verb
             for ct in self.celldef_tab.param_d.keys():
-                response_l.append(verb + ct)
+                self.response_l.append(verb + ct)
 
         # more special
-        response_l += ["is_movable","cell attachment rate","cell detachment rate","maximum number of cell attachments"]
+        self.response_l += ["is_movable","cell attachment rate","cell detachment rate","maximum number of cell attachments"]
 
         # append all custom data (but *only* for a single cell_def!)
         cell_def0 = list(self.celldef_tab.param_d.keys())[0]
         for custom_var in self.celldef_tab.param_d[cell_def0]['custom_data'].keys():
             response_name = "custom:" + custom_var
-            response_l.append(response_name)
-        return response_l
+            self.response_l.append(response_name)
+
+
+        #---- finally, use the self.response_l list to create the combobox entries
+        self.response_combobox.clear()
+        # for idx,response in enumerate(self.response_l):
+        #     item = QStandardItem(response)
+        #     self.response_model.setItem(idx, 0, item)
+        self.response_combobox.addItems(self.response_l)
+
+        self.response_combobox.setCurrentIndex(0)
 
     #-----------------------------------------------------------
     def fill_gui(self):
@@ -2074,12 +2010,21 @@ class Rules(QWidget):
         self.fill_responses_widget()
 
         #----------------------------------
+        #   <cell_rules type="csv" enabled="true">
+        #     <folder>./config</folder>
+        #     <filename>dicty_rules.csv</filename>
+        # </cell_rules>      
+        # </cell_definitions>
+        # uep = self.xml_root.find(".//cell_definitions//cell_rules")
         uep = self.xml_root.find(".//cell_rules//rulesets//ruleset")
+        # logging.debug(f'rules_tab.py: fill_gui(): <cell_rules> = {uep}')
         print(f'rules_tab.py: fill_gui(): <cell_rules> =  {uep}')
         if uep:
+            # folder_name = self.xml_root.find(".//cell_definitions//cell_rules//folder").text
             folder_name = uep.find(".//folder").text
             print(f'rules_tab.py: fill_gui():  folder_name =  {folder_name}')
             self.rules_folder.setText(folder_name)
+            # file_name = self.xml_root.find(".//cell_definitions//cell_rules//filename").text
             file_name = uep.find(".//filename").text
             print(f'rules_tab.py: fill_gui():  file_name =  {file_name}')
             if folder_name == None or file_name == None:
@@ -2089,7 +2034,7 @@ class Rules(QWidget):
                 if folder_name == None:
                     msg += " rules file "
                 msg += " missing from .xml"
-                # show_warning(msg)
+                # self.show_warning(msg)
 
                 self.rules_folder.setText("")
                 self.rules_file.setText("")
@@ -2101,10 +2046,8 @@ class Rules(QWidget):
             print("fill_rules():  os.getcwd()=",cwd)
             full_rules_fname = os.path.join(cwd, folder_name, file_name)
 
-            self.rules_enabled_attr = False
             if uep.attrib['enabled'].lower() == 'true':
                 self.rules_enabled.setChecked(True)
-                self.rules_enabled_attr = True
             else:
                 self.rules_enabled.setChecked(False)
 
@@ -2218,63 +2161,68 @@ class Rules(QWidget):
 
         return
     
+
+    def show_warning(self, msg):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText(msg)
+        #    msgBox.setWindowTitle("Example")
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        # msgBox.buttonClicked.connect(msgButtonClick)
+
+        returnValue = msgBox.exec()
+        # if returnValue == QMessageBox.Ok:
+            # print('OK clicked')
+
     #-------------------------
-    def find_and_replace_rules_table(self, old_name, new_name, possible_superstrings):
-        reserved_words = create_reserved_words()
-        possible_superstrings += reserved_words
-        super_strings = [x for x in possible_superstrings if (old_name in x) and (old_name != x)] # the other elements in the list that contain the old_name
-        print(f"\n      Finding instances of {old_name} and replacing with {new_name}.")
-        print(f"      Looking out for the following super strings: {super_strings}")
+    def find_and_replace_rules_table(self, old_name, new_name, original_list):
+        old_is_substring = any([(old_name in x) and (old_name != x) for x in original_list])
+        print(f"      using find and replace with old = {old_name} and new = {new_name}. Original list = {original_list}")
+        print(f"      so old_is_substring = {old_is_substring}")
         for irow in range(self.num_rules):
-            self.find_and_replace_rule_row(old_name, new_name, irow, super_strings)
+            self.find_and_replace_rule_row(old_name, new_name, original_list, irow, old_is_substring)
         return
     
-    def find_and_replace_rule_row(self, old_name, new_name, irow, super_strings):
+    def find_and_replace_rule_row(self, old_name, new_name, original_list, irow, old_is_substring):
         column_indices = [self.rules_celltype_idx, self.rules_signal_idx, self.rules_response_idx]
         for icol in column_indices:
             old_text = self.rules_table.cellWidget(irow, icol).text()
-            new_text = find_and_replace_rule_cell(old_name, new_name, super_strings, old_text)
+            new_text = self.find_and_replace_rule_cell(old_name, new_name, original_list, old_is_substring, old_text)
             self.rules_table.cellWidget(irow, icol).setText(new_text)
         return
     
-def find_and_replace_rule_cell(old_name, new_name, super_strings, s):
-    if s==old_name:
-        return new_name
-    
-    # there is a possibility that the old_name is a substring of some other element in the list (e.g. "mac" is being changed to "TAM" and "macrophage" is also in the list)
-    # in this case, we need to be careful to only replace the old_name and not the other element containing it (e.g. "macrophage" should not be changed to "TAMrophage")
-    # so first check if any of the super strings are in the given string
-    for super_string in super_strings:
-        if find_isolated_string(s, super_string) != -1:
-            print(f"      skipping {s} because it contains {super_string}")
-            return s
-    
-    ind = find_isolated_string(s, old_name)
-    if ind != -1:
-        print(f"      replacing {old_name} with {new_name} in {s}")
-        return s[0:ind] + new_name + s[(ind+len(old_name)):]
-    return s
-
-def find_isolated_string(s, name, start=0):
-    # now make sure that neither side of the old_name is a non-space character. this will protect against simple substrate names like "a" from changing the "a" in "intracellular", for example
-    while start < len(s):
-        ind = s.find(name, start)
-        start = ind+1 # update for next time through the loop (if there is a next time)
-        if ind == -1:
-            return -1 # got to the end of s without finding a good match, no replacements needed
-
-        if ind>0 and not (s[ind-1].isspace()):
-            continue # previous character was not a space, so this was not a good match
+    def find_and_replace_rule_cell(self, old_name, new_name, original_list, old_is_substring, s):
+        if s=="old_name":
+            return new_name
         
-        if ind < len(s)-len(name) and not (s[ind+len(name)].isspace()):
-            continue # next character was not a space, so this was not a good match
+        # now need to check if a name in the original list matches that contains old_name as a substring
+        if any([(x in s) and (old_name in x) and (old_name != x) for x in original_list]) is True:
+            # in this case, we found an element in the original_list that was in the given string...
+            # ...and the old_name was a substring of this element x in the list...
+            # ...and the element is NOT the old_name...
+            # ...then we conclude that the string has instructions for an element of our list that is NOT being renamed, so we skip
+            # NOTE: this does not protect against elements in the list being named "contact", "contact ", "intracellular", "volume", etc
+            #       protecting against that would require curating a list of "protected words" that are used in the rules grammar
+            #       but this list will grow and change over time, making it uncertain how well-maintained that list will be
+            #       Instead, we will rely on the user to not name their substrate "with", "death", etc.
+            #       Another point, any substring of these would need to be protected against, e.g. "a", "cel", "lume", etc.
+            return s
+        
+        # now make sure that neither side of the old_name is a non-space character. this will protect against simple substrate names like "a" from changing the "a" in "intracellular", for example
+        start = 0
+        while start < len(s):
+            ind = s.find(old_name, start)
+            start = ind+1 # update for next time through the loop (if there is a next time)
+            if ind == -1:
+                return s # got to the end of s without finding a good match, no replacements needed
 
-        # if we get here, then we've found a good match starting at ind
-        return ind
+            if ind>0 and ~(s[ind-1].isspace()):
+                continue # previous character was not a space, so this was not a good match
+            
+            if ind < len(s)-len(old_name) and not (s[ind+len(old_name)].isspace()):
+                continue # next character was not a space, so this was not a good match
 
-def create_reserved_words():
-    reserved_words_signals = ["contact with", "contact with live cell","contact with dead cell","contact with BM", "total attack time"]
-    reserved_words_behaviors = ["secretion target","cycle entry","attack damage rate","attack duration","damage rate","damage repair rate","migration speed","migration bias","migration persistence time","chemotactic response to","cell-cell adhesion","cell-cell adhesion elastic constant","adhesive affinity to","relative maximum adhesion distance","cell-cell repulsion","cell-BM adhesion","cell-BM repulsion","phagocytose apoptotic cell","phagocytose necrotic cell","phagocytose other dead cell","fuse to","transform to","immunogenicity to","cell attachment rate","cell detachment rate","maximum number of cell attachments"]
-    reserved_words_cycle_phases = [f"exit from cycle phase {i}" for i in range(6)]
-    reserved_words = reserved_words_signals + reserved_words_behaviors + reserved_words_cycle_phases
-    return reserved_words
+            # if we get here, then we've found a good match starting at ind; break out and deal with it
+            break
+
+        return s[0:ind] + new_name + s[(ind+len(old_name)):]
