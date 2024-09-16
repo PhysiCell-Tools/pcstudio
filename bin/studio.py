@@ -190,6 +190,56 @@ class PhysiCellXMLCreator(QWidget):
                     print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
                     sys.exit(1)
 
+# rwh: Sep 2024
+        self.studio_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+        if self.nanohub_flag:
+            # self.studio_data_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+            self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        else:
+            self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))
+        print("self.studio_root_dir = ",self.studio_root_dir)
+        logging.debug(f'self.studio_root_dir = {self.studio_root_dir}')
+
+        # assume running from a PhysiCell root dir, but change if not
+        self.config_dir = os.path.realpath(os.path.join('.', 'config'))
+
+        if self.current_dir == self.studio_root_dir:  # are we running from studio root dir?
+            # self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+            self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))
+            # self.debug_tab.add_msg("--- studio.py: self.current_dir (#2)= ",self.current_dir )
+        print(f'self.config_dir =  {self.config_dir}')
+        logging.debug(f'self.config_dir = {self.config_dir}')
+
+        # self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        # print("studio.py: self.studio_config_dir = ",self.studio_config_dir)
+        # sys.exit(1)
+
+        if config_file:
+            self.current_xml_file = os.path.join(self.current_dir, config_file)
+            print("got config_file=",config_file)
+            # sys.exit()
+        else:
+            model_name = "interactions"  # for testing latest xml
+            # model_name = "rules"
+            if self.nanohub_flag:
+                # model_name = "rules"
+                model_name = "template"
+
+                #------- copy the empty rules.csv needed for template
+                tool_dir = os.environ['TOOLPATH']  # rwh: Beware! this is read-only
+                self.home_dir = os.getcwd()
+                rules_file0 = os.path.join(tool_dir,'data',"rules_empty.csv")
+                # for template
+                rules_file1 = os.path.join(self.home_dir,"rules.csv")
+                shutil.copy(rules_file0, rules_file1)
+
+                # for biorobots
+                rules_file1 = os.path.join(self.home_dir,"bots_rules.csv")
+                shutil.copy(rules_file0, rules_file1)
+
+            self.current_xml_file = os.path.join(self.studio_config_dir, model_name + ".xml")
+
+
 
         # NOTE! We operate *directly* on a default .xml file, not a copy.
         self.setWindowTitle(self.title_prefix + self.current_xml_file)
