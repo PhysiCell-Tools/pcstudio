@@ -31,7 +31,8 @@ import numpy as np
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPalette, QColor, QIcon, QFont
-from PyQt5.QtCore import Qt
+# from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QRunnable, QThreadPool
 from PyQt5.QtWidgets import QStyleFactory
 
 from pretty_print_xml import pretty_print
@@ -179,14 +180,15 @@ class PhysiCellXMLCreator(QWidget):
         print("self.current_dir = ",self.current_dir)
         logging.debug(f'self.current_dir = {self.current_dir}')
 
-        if config_file:   # user specified config file on command line with "-c" arg
-            self.current_xml_file = os.path.join(self.current_dir, config_file)
-            print("got config_file=",config_file)
-        else:
-            self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
-            if not Path(self.current_xml_file).is_file():
-                print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
-                sys.exit(1)
+        if not self.nanohub_flag:
+            if config_file:   # user specified config file on command line with "-c" arg
+                self.current_xml_file = os.path.join(self.current_dir, config_file)
+                print("got config_file=",config_file)
+            else:
+                self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
+                if not Path(self.current_xml_file).is_file():
+                    print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
+                    sys.exit(1)
 
 
         # NOTE! We operate *directly* on a default .xml file, not a copy.
