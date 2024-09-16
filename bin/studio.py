@@ -1367,6 +1367,28 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 self.p = None
         return
 
+    def download_csv_cb(self):
+        if self.nanohub_flag:
+            self.debug_tab.add_msg("download_csv_cb() ------------")
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            try:
+                file_str = os.path.join(self.home_dir,'*.csv')
+                files_l = glob.glob(file_str)
+                # self.debug_tab.add_msg("   files_l="+files_l)
+                self.debug_tab.add_msg("   next, zip all .csv")
+                with zipfile.ZipFile('csv.zip', 'w') as myzip:
+                    for f in glob.glob(file_str):
+                    # for f in files_l:
+                        base_fname = os.path.basename(f)
+                        self.debug_tab.add_msg("   base_fname="+base_fname)
+                        # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                        myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+                self.debug_tab.add_msg("   lastly, os.system(exportfile csv.zip)")
+                os.system("exportfile csv.zip")
+            except:
+                self.debug_tab.add_msg("   Error: exception occurred")
+                print("   download_csv_cb(): Error: exception occurred")
+
     #-----------------------------------------------------------------
 
 studio_app = None
@@ -1582,149 +1604,8 @@ def main():
     # studio_app.quit()
 
 
-    def download_csv_cb(self):
-        if self.nanohub_flag:
-            self.debug_tab.add_msg("download_csv_cb() ------------")
-            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
-            try:
-                file_str = os.path.join(self.home_dir,'*.csv')
-                files_l = glob.glob(file_str)
-                # self.debug_tab.add_msg("   files_l="+files_l)
-                self.debug_tab.add_msg("   next, zip all .csv")
-                with zipfile.ZipFile('csv.zip', 'w') as myzip:
-                    for f in glob.glob(file_str):
-                    # for f in files_l:
-                        base_fname = os.path.basename(f)
-                        self.debug_tab.add_msg("   base_fname="+base_fname)
-                        # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                        myzip.write(f, base_fname)   # 2nd arg avoids full filename 
-                self.debug_tab.add_msg("   lastly, os.system(exportfile csv.zip)")
-                os.system("exportfile csv.zip")
-            except:
-                self.debug_tab.add_msg("   Error: exception occurred")
-                print("   download_csv_cb(): Error: exception occurred")
 
 
-    def download_svg_cb(self):
-        if self.nanohub_flag:
-            self.debug_tab.add_msg("download_svg_cb() ------------")
-            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
-            try:
-                # os.chdir("tmpdir")
-                file_str = os.path.join(self.home_dir,'tmpdir','*.svg')
-                self.debug_tab.add_msg("   "+file_str)
-                # file_str = "*.svg"
-                self.debug_tab.add_msg("   next, zip all .svg")
-                # print('-------- download_svg_cb(): zip up all ',file_str)
-                with zipfile.ZipFile('svg.zip', 'w') as myzip:
-                    for f in glob.glob(file_str):
-                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                self.debug_tab.add_msg("   lastly, os.system(exportfile svg.zip)")
-                os.system("exportfile svg.zip")
-                # os.chdir("..")
-            except:
-                self.debug_tab.add_msg("   Error: exception occurred")
-
-        return
-
-    def download_full_cb(self):
-        if self.nanohub_flag:
-            self.debug_tab.add_msg("download_full_cb() ------------")
-            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
-            try:
-                self.debug_tab.add_msg("   trying to use os.system(exportfile mcds.zip)")
-                    # file_str = os.path.join(self.output_dir, '*.svg')
-                file_xml = os.path.join(self.home_dir,'tmpdir', 'output*.xml')
-                self.debug_tab.add_msg("   "+file_xml)
-                file_mat = os.path.join(self.home_dir, 'tmpdir','output*.mat')
-                self.debug_tab.add_msg("   "+file_mat)
-                # print('-------- download_svg_cb(): zip up all ',file_str)
-                self.debug_tab.add_msg("   next, zip all .xml and .mat")
-                with zipfile.ZipFile('mcds.zip', 'w') as myzip:
-                    for f in glob.glob(file_xml):
-                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                    for f in glob.glob(file_mat):
-                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                self.debug_tab.add_msg("   lastly, os.system(exportfile mcds.zip)")
-                os.system("exportfile mcds.zip")
-            except:
-                self.debug_tab.add_msg("   Error: exception occurred")
-        return
-
-    def download_graph_cb(self):
-        if self.nanohub_flag:
-            self.debug_tab.add_msg("download_graph_cb() ------------")
-            try:
-                self.debug_tab.add_msg("   trying to use os.system(exportfile graph.zip)")
-                # os.chdir("tmpdir")
-                file_str = os.path.join(self.home_dir, 'tmpdir','output*.txt')
-                # file_str = "*.txt"
-                # print('-------- download_graph): zip up all ',file_str)
-                with zipfile.ZipFile('graph.zip', 'w') as myzip:
-                    for f in glob.glob(file_str):
-                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                os.system("exportfile graph.zip")
-                # os.chdir("..")
-            except:
-                self.debug_tab.add_msg("   Error: exception occurred")
-
-    #----------------------------------
-    def upload_config_cb(self):
-        if self.nanohub_flag:
-            cwd = os.getcwd()
-            self.debug_tab.add_msg("upload_config_cb() ------------")
-            self.debug_tab.add_msg("        cwd= "+cwd)
-            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
-            # os.chdir("tmpdir")
-            try:
-                self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
-                os.system("importfile mymodel.xml")
-            except:
-                self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
-
-
-    #-------------------------------------------------------------------------
-    def biorobots_nanohub_cb(self):
-        print("\n\n\n================ copy/load sample ======================================")
-        os.chdir(self.home_dir)
-        name = "biorobots_flat"
-        # sample_file = Path("data", name + ".xml")
-        # sample_file = Path(self.absolute_data_dir, name + ".xml")
-        sample_file = Path(self.pmb_data_dir, name + ".xml")
-        copy_file = "copy_" + name + ".xml"
-        shutil.copy(sample_file, copy_file)
-
-        # self.add_new_model(copy_file, True)
-        # self.config_file = "config_samples/" + name + ".xml"
-        self.config_file = copy_file
-        # self.show_sample_model()
-        # self.run_tab.exec_name.setText('../biorobots')
-
-        try:
-            print("biorobots_nanohub_cb():------------- copying ",sample_file," to ",copy_file)
-            shutil.copy(sample_file, copy_file)
-        except:
-            print("biorobots_nanohub_cb(): Unable to copy file(1).")
-            sys.exit(1)
-
-        try:
-            print("biorobots_nanohub_cb():------------- copying ",sample_file," to config.xml")
-            shutil.copy(sample_file, "config.xml")
-        except:
-            print("biorobots_nanohub_cb(): Unable to copy file(2).")
-            sys.exit(1)
-
-        self.add_new_model(copy_file, True)
-        self.config_file = copy_file
-        print("biorobots_nanohub_cb:   self.config_file = ",self.config_file)
-
-        self.show_sample_model()
-        if self.nanohub_flag:
-            self.run_tab.exec_name.setText('biorobots')
-        else:
-            self.run_tab.exec_name.setText('../biorobots')
-        self.vis_tab.show_edge = False
-        self.vis_tab.bgcolor = [1,1,1,1]
 	
 if __name__ == '__main__':
     # logging.basicConfig(filename='studio.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
