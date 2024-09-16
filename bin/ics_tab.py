@@ -32,7 +32,7 @@ from PyQt5.QtGui import QPixmap
 
 from studio_classes import QHLine, HoverLabel,DoubleValidatorWidgetBounded
 from studio_functions import style_sheet_template
-from biwt_tab import BioinformaticsWalkthrough
+# from biwt_tab import BioinformaticsWalkthrough
 
 import numpy as np
 import matplotlib
