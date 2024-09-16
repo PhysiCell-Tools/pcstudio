@@ -589,6 +589,10 @@ class ICs(QWidget):
 
         # self.create_figure()
 
+    def update_colors_list(self):
+        if len(self.celldef_tab.celltypes_list) >= len(self.color_by_celltype):
+            # print("ics_tab: update_colors_list(): exceeded # of colors. Grow it.")
+            self.color_by_celltype.append('white')  # match what's done in PhysiCell
 
     def fill_celltype_combobox(self):
         logging.debug(f'ics_tab.py: fill_celltype_combobox(): {self.celldef_tab.celltypes_list}')
