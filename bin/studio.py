@@ -1292,6 +1292,23 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 self.p = None
         return
 
+    def download_graph_cb(self):
+        if self.nanohub_flag:
+            self.debug_tab.add_msg("download_graph_cb() ------------")
+            try:
+                self.debug_tab.add_msg("   trying to use os.system(exportfile graph.zip)")
+                # os.chdir("tmpdir")
+                file_str = os.path.join(self.home_dir, 'tmpdir','output*.txt')
+                # file_str = "*.txt"
+                # print('-------- download_graph): zip up all ',file_str)
+                with zipfile.ZipFile('graph.zip', 'w') as myzip:
+                    for f in glob.glob(file_str):
+                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                os.system("exportfile graph.zip")
+                # os.chdir("..")
+            except:
+                self.debug_tab.add_msg("   Error: exception occurred")
+
     def download_rules_cb(self):
         if self.nanohub_flag:
             try:
@@ -1388,6 +1405,21 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             except:
                 self.debug_tab.add_msg("   Error: exception occurred")
                 print("   download_csv_cb(): Error: exception occurred")
+
+    #----------------------------------
+    def upload_config_cb(self):
+        if self.nanohub_flag:
+            cwd = os.getcwd()
+            self.debug_tab.add_msg("upload_config_cb() ------------")
+            self.debug_tab.add_msg("        cwd= "+cwd)
+            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            # os.chdir("tmpdir")
+            try:
+                self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
+                os.system("importfile mymodel.xml")
+            except:
+                self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
+
 
     #-----------------------------------------------------------------
 
