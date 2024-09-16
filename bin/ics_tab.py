@@ -2580,7 +2580,10 @@ class ICs(QWidget):
             max_val = float(self.substrate_color_pars[self.substrate_combobox.currentText()]["cmax"])
         else:
             min_val = min(float(self.substrate_set_value.text()),np.min(self.current_substrate_values))
-            min_pos_val = np.min(self.current_substrate_values[self.current_substrate_values>0],initial=float(self.substrate_set_value.text()))
+
+            #rwh: nanohub mpl version fun, Sep 2024
+            # min_pos_val = np.min(self.current_substrate_values[self.current_substrate_values>0],initial=float(self.substrate_set_value.text()))
+            min_pos_val = np.min(self.current_substrate_values[self.current_substrate_values>0])
             max_val = max(float(self.substrate_set_value.text()),np.max(self.current_substrate_values))
         if (min_pos_val>0) and ((self.substrate_color_pars[self.substrate_combobox.currentText()]["scale"]=="log") or (self.substrate_color_pars[self.substrate_combobox.currentText()]["scale"]=="auto" and max_val > 100*min_pos_val)):
             self.substrate_plot.set_norm(matplotlib.colors.LogNorm(vmin=min_pos_val, vmax=max_val))
