@@ -702,7 +702,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 view_menu.triggered.connect(self.view2D_cb)
 
                 vis2D_filterUI_act = view_menu.addAction("Plot options", self.filterUI_cb)
-                vis2D_model_summary_act = view_menu.addAction("Model summary", self.model_summary_cb)
+                if not self.nanohub_flag:
+                    vis2D_model_summary_act = view_menu.addAction("Model summary", self.model_summary_cb)
 
 
         action_menu = menubar.addMenu('&Action')
