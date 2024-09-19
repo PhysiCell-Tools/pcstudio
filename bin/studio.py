@@ -82,7 +82,7 @@ def quit_cb():
     studio_app.quit()
 
 class PhysiCellXMLCreator(QWidget):
-    def __init__(self, config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, pytest_flag, biwt_flag, parent = None):
+    def __init__(self, config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, pytest_flag, biwt_flag, debug_flag, parent = None):
         super(PhysiCellXMLCreator, self).__init__(parent)
         if model3D_flag:
             try:
@@ -110,6 +110,7 @@ class PhysiCellXMLCreator(QWidget):
         self.ecm_flag = False 
         self.pytest_flag = pytest_flag 
         self.biwt_flag = biwt_flag
+        self.debug_flag = debug_flag 
         print("PhysiCellXMLCreator(): self.nanohub_flag= ",self.nanohub_flag)
 
         self.rules_tab_index = None
@@ -264,6 +265,11 @@ class PhysiCellXMLCreator(QWidget):
         self.num_models = 0
         self.model = {}  # key: name, value:[read-only, tree]
 
+        if self.debug_flag:
+            self.debug_tab = Debug()
+        else:
+            self.debug_tab = None
+
         self.config_tab = Config(self.studio_flag)
         self.config_tab_index = 0
         self.config_tab.xml_root = self.xml_root
@@ -412,6 +418,19 @@ class PhysiCellXMLCreator(QWidget):
 
             self.homedir = os.getcwd()
             print("studio.py: self.homedir = ",self.homedir)
+
+            if self.debug_flag:
+                # self.tabWidget.addTab(self.debug_tab,"Debug")   # rwh: disable for "production" app
+                self.run_tab.debug_tab = self.debug_tab
+                self.vis_tab.debug_tab = self.debug_tab
+
+                self.debug_msg("--- studio.py: self.current_dir = "+self.current_dir )
+                # ~l.330
+                self.debug_msg(" studio.py: self.absolute_data_dir is "+self.absolute_data_dir)
+                self.debug_msg(" studio.py: self.rules_tab.rules_folder.text() is "+self.rules_tab.rules_folder.text())
+
+                self.debug_msg(" studio.py: self.home_dir is "+self.home_dir)
+
             if self.nanohub_flag:
                 try:
                     # cachedir = os.environ['CACHEDIR']
@@ -1490,6 +1509,7 @@ def main():
     is_movable_flag = False
     pytest_flag = False
     biwt_flag = False
+    debug_flag = True
     try:
         parser = argparse.ArgumentParser(description='PhysiCell Studio.')
 
@@ -1659,8 +1679,7 @@ def main():
             # print("Warning: Rules module not found.\n")
 
     # print("calling PhysiCellXMLCreator with rules_flag= ",rules_flag)
-    ex = PhysiCellXMLCreator(config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, pytest_flag, biwt_flag
-                             )
+    ex = PhysiCellXMLCreator(config_file, studio_flag, skip_validate_flag, rules_flag, model3D_flag, tensor_flag, exec_file, nanohub_flag, is_movable_flag, pytest_flag, biwt_flag, debug_flag)
     print("size=",ex.size())  # = PyQt5.QtCore.QSize(1100, 770)
     # ex.setFixedWidth(1101)  # = PyQt5.QtCore.QSize(1100, 770)
     # print("width=",ex.size())
