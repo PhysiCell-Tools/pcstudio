@@ -1148,6 +1148,11 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         msg.setFixedWidth(500)
         msg.exec_()
 
+    def debug_msg(self,msg):
+        if self.debug_tab is None:
+            return
+        else:
+            self.debug_tab.add_msg(msg)
 
     def load_model(self,name):
         if self.studio_flag:
