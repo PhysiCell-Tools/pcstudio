@@ -435,18 +435,18 @@ class Config(QWidget):
         hbox = QHBoxLayout()
 
         cbox_width = 200
-        self.virtual_walls = QCheckBox_custom("virtual walls")
+        self.virtual_walls = QCheckBox_custom("virtual walls (nudge cells away from domain boundaries)")
         self.virtual_walls.setFixedWidth(cbox_width)
         self.virtual_walls.setChecked(True)
         idx_row += 1
         # self.config_tab_layout.addWidget(self.virtual_walls, idx_row,1,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(self.virtual_walls)
 
-        self.disable_auto_springs = QCheckBox_custom("disable springs")
-        self.disable_auto_springs.setFixedWidth(cbox_width)
-        self.disable_auto_springs.setChecked(True)
-        # self.config_tab_layout.addWidget(self.disable_auto_springs, idx_row,2,1,1) # w, row, column, rowspan, colspan
-        hbox.addWidget(self.disable_auto_springs)
+        # self.disable_auto_springs = QCheckBox_custom("disable springs")
+        # self.disable_auto_springs.setFixedWidth(cbox_width)
+        # self.disable_auto_springs.setChecked(True)
+        # # self.config_tab_layout.addWidget(self.disable_auto_springs, idx_row,2,1,1) # w, row, column, rowspan, colspan
+        # hbox.addWidget(self.disable_auto_springs)
 
         vbox.addLayout(hbox)
 
