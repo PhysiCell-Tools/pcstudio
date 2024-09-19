@@ -682,8 +682,12 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             self.download_graph_item = self.download_menu.addAction("Download cell graph (.txt) data", self.download_graph_cb)
             # self.download_menu_item.setEnabled(False)
             # self.download_menu.setEnabled(False)
+
+            self.upload_menu = file_menu.addMenu('Upload')
+            self.upload_config_item = self.upload_menu.addAction("Upload mymodel.xml", self.upload_config_cb)
         else:
             self.download_menu = None
+            self.upload_menu = None
 
         #-------------------------
         if self.model3D_flag:
@@ -717,7 +721,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         menubar.adjustSize()  # Argh. Otherwise, only 1st menu appears, with ">>" to others!
 
     def open_help_url(self):
-        url = QtCore.QUrl('https://github.com/PhysiCell-Tools/Studio-Guide/blob/main/README.md')
+        # url = QtCore.QUrl('https://github.com/PhysiCell-Tools/Studio-Guide/blob/main/README.md')
+        url = QtCore.QUrl('https://github.com/PhysiCell-Tools/Studio-Guide')
         if not QtGui.QDesktopServices.openUrl(url):
             QtGui.QMessageBox.warning(self, 'Open Url', 'Could not open URL')
 
