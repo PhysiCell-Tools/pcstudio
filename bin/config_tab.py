@@ -564,10 +564,10 @@ class Config(QWidget):
         else:
             print("\n\n---------virtual_wall_at_domain_edge is None !!!!!!!!!!!!1")
 
-        self.disable_auto_springs.setChecked(False)
-        if self.xml_root.find(".//disable_automated_spring_adhesions") is not None:
-            if self.xml_root.find(".//disable_automated_spring_adhesions").text.lower() == "true":
-                self.disable_auto_springs.setChecked(True)
+        # self.disable_auto_springs.setChecked(False)
+        # if self.xml_root.find(".//disable_automated_spring_adhesions") is not None:
+        #     if self.xml_root.find(".//disable_automated_spring_adhesions").text.lower() == "true":
+        #         self.disable_auto_springs.setChecked(True)
         
         self.max_time.setText(self.xml_root.find(".//max_time").text)
         self.diffusion_dt.setText(self.xml_root.find(".//dt_diffusion").text)
