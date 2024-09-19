@@ -420,17 +420,6 @@ class PhysiCellXMLCreator(QWidget):
             self.homedir = os.getcwd()
             print("studio.py: self.homedir = ",self.homedir)
 
-            if self.debug_flag:
-                # self.tabWidget.addTab(self.debug_tab,"Debug")   # rwh: disable for "production" app
-                self.run_tab.debug_tab = self.debug_tab
-                self.vis_tab.debug_tab = self.debug_tab
-
-                self.debug_msg("--- studio.py: self.current_dir = "+self.current_dir )
-                # ~l.330
-                self.debug_msg(" studio.py: self.absolute_data_dir is "+self.absolute_data_dir)
-                self.debug_msg(" studio.py: self.rules_tab.rules_folder.text() is "+self.rules_tab.rules_folder.text())
-
-                self.debug_msg(" studio.py: self.home_dir is "+self.home_dir)
 
             if self.nanohub_flag:
                 try:
@@ -495,6 +484,19 @@ class PhysiCellXMLCreator(QWidget):
             # self.tabWidget.setTabEnabled(5, False)
             self.enablePlotTab(False)
             self.enablePlotTab(True)
+
+            if self.debug_flag:
+                # self.tabWidget.addTab(self.debug_tab,"Debug")   # rwh: disable for "production" app
+                self.run_tab.debug_tab = self.debug_tab
+                self.vis_tab.debug_tab = self.debug_tab
+
+                self.debug_msg("--- studio.py: self.current_dir = "+self.current_dir )
+                # ~l.330
+                self.debug_msg(" studio.py: self.absolute_data_dir is "+self.absolute_data_dir)
+                self.debug_msg(" studio.py: self.rules_tab.rules_folder.text() is "+self.rules_tab.rules_folder.text())
+
+                self.debug_msg(" studio.py: self.home_dir is "+self.home_dir)
+
 
             self.studio_settings = StudioSettings(self, self.fix_min_size, self.vis_tab)  # pass in dict eventually
 
