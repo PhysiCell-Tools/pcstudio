@@ -47,6 +47,7 @@ except:
 from ics_tab import ICs
 from populate_tree_cell_defs import populate_tree_cell_defs
 from run_tab import RunModel 
+from debug_tab import Debug   # nanohub
 from settings import StudioSettings
 # from legend_tab import Legend 
 
