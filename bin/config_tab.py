@@ -436,7 +436,7 @@ class Config(QWidget):
 
         cbox_width = 200
         self.virtual_walls = QCheckBox_custom("virtual walls (nudge cells away from domain boundaries)")
-        self.virtual_walls.setFixedWidth(cbox_width)
+        self.virtual_walls.setFixedWidth(400)
         self.virtual_walls.setChecked(True)
         idx_row += 1
         # self.config_tab_layout.addWidget(self.virtual_walls, idx_row,1,1,1) # w, row, column, rowspan, colspan
