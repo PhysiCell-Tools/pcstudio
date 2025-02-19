@@ -183,6 +183,7 @@ class RunModel(QWidget):
                 # remove any previous data
                 # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
                 if self.nanohub_flag:
+                    print("run_tab: self.home_dir= ",self.home_dir)
                     os.chdir(self.home_dir)  # session root dir on nanoHUB (not /tmpdir)
                     self.debug_tab.add_msg("run_tab: chdir to (home_dir) "+self.home_dir)
                     os.system('rm -rf tmpdir*')
