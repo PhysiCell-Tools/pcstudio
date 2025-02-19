@@ -219,7 +219,7 @@
 	
 	<initial_conditions>
 		<cell_positions type="csv" enabled="false">
-			<folder>.</folder>
+			<folder>template</folder>
 			<filename>template_cells.csv</filename>
 		</cell_positions>
 	</initial_conditions>	
