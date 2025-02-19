@@ -1227,6 +1227,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./project.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('project')
             else:  
                 self.run_tab.exec_name.setText('./project')
 
@@ -1237,6 +1239,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./biorobots.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('biorobots')
             else:  
                 self.run_tab.exec_name.setText('./biorobots')
 
@@ -1245,6 +1249,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./project.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('project')
             else:  
                 self.run_tab.exec_name.setText('./project')
 
@@ -1253,6 +1259,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./cancer_biorobots.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('cancer_biorobots')
             else:  
                 self.run_tab.exec_name.setText('./cancer_biorobots')
 
@@ -1261,6 +1269,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./heterogeneity.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('heterogeneity')
             else:  
                 self.run_tab.exec_name.setText('./heterogeneity')
 
@@ -1269,6 +1279,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./pred_prey.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('pred_prey')
             else:  
                 self.run_tab.exec_name.setText('./pred_prey')
 
@@ -1277,6 +1289,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./virus-sample.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('virus-sample')
             else:  
                 self.run_tab.exec_name.setText('./virus-sample')
 
@@ -1285,6 +1299,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./worm.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('worm')
             else:  
                 self.run_tab.exec_name.setText('./worm')
 
@@ -1293,6 +1309,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./interaction_demo.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('interaction_demo')
             else:  
                 self.run_tab.exec_name.setText('./interaction_demo')
 
@@ -1301,6 +1319,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./mechano.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('mechano')
             else:  
                 self.run_tab.exec_name.setText('./mechano')
 
@@ -1309,6 +1329,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./cancer_immune_3D.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('cancer_immune_3D')
             else:  
                 self.run_tab.exec_name.setText('./cancer_immune_3D')
 
@@ -1318,6 +1340,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.studio_flag:
             if platform.system() == "Windows":
                 self.run_tab.exec_name.setText('./PhysiBoSS_Cell_Lines.exe')
+            elif self.nanohub_flag:
+                self.run_tab.exec_name.setText('PhysiBoSS_Cell_Lines')
             else:  
                 self.run_tab.exec_name.setText('./PhysiBoSS_Cell_Lines')
 
