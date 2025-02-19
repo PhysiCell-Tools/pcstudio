@@ -1,4 +1,4 @@
 # pcstudio
 
-PhysiCell Studio app using Qt Studio GUI.
+PhysiCell Studio app (using PyQt5 GUI) specialized for nanoHUB :/
 
