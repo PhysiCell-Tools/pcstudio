@@ -216,6 +216,8 @@ class PhysiCellXMLCreator(QWidget):
         # print("studio.py: self.studio_config_dir = ",self.studio_config_dir)
         # sys.exit(1)
 
+        self.home_dir = os.getcwd()  # rwh: 2/19/25
+
         if config_file:
             self.current_xml_file = os.path.join(self.current_dir, config_file)
             print("got config_file=",config_file)
@@ -385,7 +387,6 @@ class PhysiCellXMLCreator(QWidget):
             self.rules_tab.fill_gui()
 
             if self.nanohub_flag:
-                self.rules_tab.home_dir = os.getcwd()  # rwh 2/19/25
                 self.rules_tab.rules_folder.setText(self.absolute_data_dir)
 
         if self.studio_flag:
@@ -420,6 +421,7 @@ class PhysiCellXMLCreator(QWidget):
 
             self.homedir = os.getcwd()
             print("studio.py: self.homedir = ",self.homedir)
+            self.run_tab.home_dir = self.homedir   # rwh: 2/19/25
 
 
             if self.nanohub_flag:
