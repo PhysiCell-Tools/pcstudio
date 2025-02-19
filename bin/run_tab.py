@@ -183,7 +183,8 @@ class RunModel(QWidget):
                 # remove any previous data
                 # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
                 if self.nanohub_flag:
-                    print("run_tab: self.home_dir= ",self.home_dir)
+                    logging.debug(f'====run_model_cb():  self.home_dir={self.home_dir}' )
+                    # print("run_tab: self.home_dir= ",self.home_dir)
                     os.chdir(self.home_dir)  # session root dir on nanoHUB (not /tmpdir)
                     self.debug_tab.add_msg("run_tab: chdir to (home_dir) "+self.home_dir)
                     os.system('rm -rf tmpdir*')
@@ -197,8 +198,10 @@ class RunModel(QWidget):
                             self.debug_tab.add_msg("run_tab: NFS exception; unable to clean tmpdir")
                     try:
                         self.debug_tab.add_msg("run_tab: doing os.makedirs(tmpdir)")
+                        logging.debug(f'====run_model_cb():  doing os.makedirs("tmpdir")')
                         os.makedirs('tmpdir')
                     except:
+                        logging.debug(f'====run_model_cb():  exception doing os.makedirs("tmpdir")')
                         self.debug_tab.add_msg("run_tab: exception with os.makedirs(tmpdir)")
 
                     # write the default config file to tmpdir
