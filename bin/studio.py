@@ -385,6 +385,7 @@ class PhysiCellXMLCreator(QWidget):
             self.rules_tab.fill_gui()
 
             if self.nanohub_flag:
+                self.home_dir = os.getcwd()  # rwh 2/19/25
                 self.rules_tab.rules_folder.setText(self.absolute_data_dir)
 
         if self.studio_flag:
