@@ -8,68 +8,63 @@ Rf. Credits.md
 import sys
 import logging
 import os
+from math import floor, log10
 from pathlib import Path
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit,QHBoxLayout,QVBoxLayout,QRadioButton,QPushButton, QLabel,QCheckBox,QComboBox,QScrollArea,QGridLayout, QFileDialog
+# from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFrame,QApplication,QWidget,QTabWidget,QLineEdit,QHBoxLayout,QVBoxLayout,QRadioButton,QPushButton, QLabel,QComboBox,QScrollArea,QGridLayout, QFileDialog,QSpinBox,QDoubleSpinBox, QButtonGroup    # , QMessageBox
 # from PyQt5.QtWidgets import QMessageBox
 
-class QCheckBox_custom(QCheckBox):  # it's insane to have to do this!
-    def __init__(self,name):
-        super(QCheckBox, self).__init__(name)
+from studio_classes import QLabelSeparator, QLineEdit_custom, QCheckBox_custom, QRadioButton_custom, HoverWarning, StudioTab
+from studio_functions import style_sheet_template
 
-        checkbox_style = """
-                QCheckBox::indicator:checked {
-                    background-color: rgb(255,255,255);
-                    border: 1px solid #5A5A5A;
-                    width : 15px;
-                    height : 15px;
-                    border-radius : 3px;
-                    image: url(images:checkmark.png);
-                }
-                QCheckBox::indicator:unchecked
-                {
-                    background-color: rgb(255,255,255);
-                    border: 1px solid #5A5A5A;
-                    width : 15px;
-                    height : 15px;
-                    border-radius : 3px;
-                }
-                """
-        self.setStyleSheet(checkbox_style)
+class RandomSeedIntValidator(QtGui.QValidator):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-class Config(QWidget):
+    def validate(self, text, pos):
+        # see if text is an integer
+        if text == "" or text.isdigit():
+            return QtGui.QValidator.Acceptable, text, pos
+        else:
+            return QtGui.QValidator.Invalid, text, pos
+
+class RandomSeedIntValidator(QtGui.QValidator):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def validate(self, text, pos):
+        # see if text is an integer
+        if text == "" or text.isdigit():
+            return QtGui.QValidator.Acceptable, text, pos
+        else:
+            return QtGui.QValidator.Invalid, text, pos
+
+class Config(StudioTab):
     # def __init__(self, nanohub_flag):
-    def __init__(self, studio_flag):
-        super().__init__()
+    def __init__(self, xml_creator, nanohub_flag):
+        super().__init__(xml_creator)
         # global self.config_params
 
         self.default_time_units = "min"
 
-        # self.nanohub_flag = nanohub_flag
-        self.nanohub_flag = False
+        self.nanohub_flag = nanohub_flag
 
-        self.studio_flag = studio_flag
         self.vis_tab = None
+        self.ics_tab = None
 
         self.xml_root = None
 
         self.sync_output = True
 
-        qlineedit_style = """
-        QLineEdit: disabled {
-            background-color:#ff0000;
-        }
+        self.substrate_list = []
 
-        QLineEdit: enabled {
-            background-color:#ffffff;
-        }
-        """
-        self.setStyleSheet(qlineedit_style)
-
+        self.update_max_time_flag = True # flag to stop recursive QSpinBox updates
+        
         # self.tab = QWidget()
         # self.tabs.resize(200,5)
-        
+
         #-------------------------------------------
         label_width = 110
         domain_value_width = 100
@@ -85,10 +80,8 @@ class Config(QWidget):
         # self.config_tab_layout.addWidget(self.tab_widget, 0,0,1,1) # w, row, column, rowspan, colspan
 
         #============  Domain ================================
-        label = QLabel("Domain (micron)")
+        label = QLabelSeparator("Domain (micron)")
         label.setFixedHeight(label_height)
-        label.setStyleSheet("background-color: orange")
-        label.setAlignment(QtCore.Qt.AlignCenter)
         idx_row = 0
         self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
 
@@ -181,10 +174,8 @@ class Config(QWidget):
         self.config_tab_layout.addWidget(self.zdel, idx_row,5,1,1) # w, row, column, rowspan, colspan
 
         #============  Misc ================================
-        label = QLabel("Times")
+        label = QLabelSeparator("Times")
         label.setFixedHeight(label_height)
-        label.setStyleSheet("background-color: orange")
-        label.setAlignment(QtCore.Qt.AlignCenter)
         idx_row += 1
         self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
 
@@ -194,12 +185,59 @@ class Config(QWidget):
         self.config_tab_layout.addWidget(label, idx_row,0,1,1) # w, row, column, rowspan, colspan
 
         self.max_time = QLineEdit()
-        self.max_time.setValidator(QtGui.QDoubleValidator())
+        self.max_time.setValidator(QtGui.QDoubleValidator(bottom=0))
+        self.max_time.textChanged.connect(self.max_time_changed_cb)
         self.config_tab_layout.addWidget(self.max_time, idx_row,1,1,1) # w, row, column, rowspan, colspan
 
         label = QLabel(self.default_time_units)
         label.setAlignment(QtCore.Qt.AlignLeft)
         self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
+
+        self.day_spin_box = QSpinBox()
+
+        self.day_spin_box.setMinimum(0)
+        self.day_spin_box.setMaximum(int(1e6))
+
+        self.day_spin_box.setSuffix(" d")
+        self.day_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
+        self.day_spin_box.textChanged.connect(self.day_value_changed_str)
+
+        self.config_tab_layout.addWidget(self.day_spin_box,idx_row,3,1,1)
+
+        self.hour_spin_box = QSpinBox()
+
+        self.hour_spin_box.setMinimum(-1) # allow it to roll over to a new day
+        self.hour_spin_box.setMaximum(24) # allow it to roll over to a new day
+
+        self.hour_spin_box.setSuffix(" h")
+        self.hour_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
+        self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
+
+        self.config_tab_layout.addWidget(self.hour_spin_box,idx_row,4,1,1)
+
+        self.minute_spin_box = QSpinBox()
+
+        self.minute_spin_box.setMinimum(-1)
+        self.minute_spin_box.setMaximum(60)
+
+        self.minute_spin_box.setSuffix(" min")
+        self.minute_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
+        self.minute_spin_box.textChanged.connect(self.minute_value_changed_str)
+
+        self.config_tab_layout.addWidget(self.minute_spin_box,idx_row,5,1,1)
+
+        self.minute_fraction_spin_box = QDoubleSpinBox()
+
+        self.minute_fraction_spin_box.setMinimum(-1)
+        self.minute_fraction_spin_box.setMaximum(1)
+
+        self.minute_fraction_spin_box.setDecimals(2) # set to 2 by default, but listen to diffusion_dt
+
+        self.minute_fraction_spin_box.setSuffix(" min")
+        self.minute_fraction_spin_box.setSingleStep(0.01)  # Or e.g. 0.5 for QDoubleSpinBox
+        self.minute_fraction_spin_box.textChanged.connect(self.minute_fraction_value_changed_str)
+
+        self.config_tab_layout.addWidget(self.minute_fraction_spin_box,idx_row,6,1,1)
 
         label = QLabel("Diffusion dt")
         label.setAlignment(QtCore.Qt.AlignRight)
@@ -208,6 +246,7 @@ class Config(QWidget):
 
         self.diffusion_dt = QLineEdit()
         self.diffusion_dt.setValidator(QtGui.QDoubleValidator())
+        self.diffusion_dt.textChanged.connect(self.diffusion_dt_changed_cb)
         self.config_tab_layout.addWidget(self.diffusion_dt, idx_row,1,1,1) # w, row, column, rowspan, colspan
 
         label = QLabel(self.default_time_units)
@@ -241,25 +280,10 @@ class Config(QWidget):
         self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
 
         #============  Misc ================================
-        label = QLabel("Misc runtime parameters")
+        label = QLabelSeparator("Misc runtime parameters")
         label.setFixedHeight(label_height)
-        label.setStyleSheet("background-color: orange")
-        label.setAlignment(QtCore.Qt.AlignCenter)
         idx_row += 1
         self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
-
-        # label = QLabel("Max Time")
-        # label.setAlignment(QtCore.Qt.AlignRight)
-        # idx_row += 1
-        # self.config_tab_layout.addWidget(label, idx_row,0,1,1) # w, row, column, rowspan, colspan
-
-        # self.max_time = QLineEdit()
-        # self.max_time.setValidator(QtGui.QDoubleValidator())
-        # self.config_tab_layout.addWidget(self.max_time, idx_row,1,1,1) # w, row, column, rowspan, colspan
-
-        # label = QLabel("min")
-        # label.setAlignment(QtCore.Qt.AlignLeft)
-        # self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
 
         #----------
         label = QLabel("# threads")
@@ -270,6 +294,7 @@ class Config(QWidget):
         self.num_threads = QLineEdit()
         self.num_threads.setValidator(QtGui.QIntValidator())
         self.config_tab_layout.addWidget(self.num_threads, idx_row,1,1,1) # w, row, column, rowspan, colspan
+
         #----------
 
         label = QLabel("output folder")
@@ -281,21 +306,62 @@ class Config(QWidget):
         if self.nanohub_flag:
             self.folder.setEnabled(False)
         self.config_tab_layout.addWidget(self.folder, idx_row,1,1,1) # w, row, column, rowspan, colspan
-        # self.folder.textChanged.connect(self.folder_name_cb)
-
-        # if self.studio_flag:
-        #     label = QLabel("Plot/Legend folder")
-        #     label.setAlignment(QtCore.Qt.AlignRight)
-        #     self.config_tab_layout.addWidget(label, idx_row,2,1,1) # w, row, column, rowspan, colspan
-
-        #     self.plot_folder = QLineEdit()
-        #     self.config_tab_layout.addWidget(self.plot_folder, idx_row,3,1,1) # w, row, column, rowspan, colspan
-        #     self.plot_folder.textChanged.connect(self.plot_folder_name_cb)
 
         #---------------------------------------------------------------------------
         # Use a vbox/hbox instead of the grid for better alignment :/
         vbox = QVBoxLayout()
         vbox.addLayout(self.config_tab_layout)
+
+        #----------
+        hbox = QHBoxLayout()
+        label = QLabel("Random seed:")
+        label.setAlignment(QtCore.Qt.AlignRight)
+
+        vbox_temp = QVBoxLayout()
+        vbox_temp.addStretch()
+        vbox_temp.addWidget(label)
+        vbox_temp.addStretch()
+        hbox.addLayout(vbox_temp)
+
+        self.random_seed_gp = QButtonGroup()
+        self.random_seed_gp.idToggled.connect(self.random_seed_gp_cb)
+        random_seed_gp_next_id = 0
+
+        self.random_seed_random_button = QRadioButton_custom("system clock")
+        self.random_seed_gp.addButton(self.random_seed_random_button, random_seed_gp_next_id)
+        hbox.addWidget(self.random_seed_random_button)
+        random_seed_gp_next_id += 1
+
+        self.random_seed_integer_button = QRadioButton_custom("integer \u2192")
+        self.random_seed_gp.addButton(self.random_seed_integer_button, random_seed_gp_next_id)
+        hbox.addWidget(self.random_seed_integer_button)
+        random_seed_gp_next_id += 1
+
+        label = QLabel("seed")
+        # align label vertically in bottom of hbox
+        label.setAlignment(QtCore.Qt.AlignBottom)
+        label.setAlignment(QtCore.Qt.AlignLeft)
+
+        vbox_temp = QVBoxLayout()
+        vbox_temp.addStretch()
+        vbox_temp.addWidget(label)
+        vbox_temp.addStretch()
+        hbox.addLayout(vbox_temp)
+
+        self.random_seed_integer = QLineEdit_custom()
+        self.random_seed_integer.setPlaceholderText("system_clock")
+        self.random_seed_integer.setFixedWidth(100)
+        self.random_seed_integer.setEnabled(False)
+        self.random_seed_integer.textChanged.connect(self.random_seed_integer_cb)
+        self.random_seed_integer.setValidator(RandomSeedIntValidator())
+        hbox.addWidget(self.random_seed_integer)
+
+        self.random_seed_warning_label = HoverWarning("WARNING: random_seed in user_parameters will take precedence if it remains.")
+        hbox.addWidget(self.random_seed_warning_label)
+
+        hbox.addStretch()
+
+        vbox.addLayout(hbox)
 
         #------------------
         hbox = QHBoxLayout()
@@ -313,49 +379,33 @@ class Config(QWidget):
         self.save_svg.setFixedWidth(cbox_width)
         self.save_svg.setChecked(True)
         self.save_svg.clicked.connect(self.svg_clicked)
-        icol += 2
-        # self.config_tab_layout.addWidget(self.save_svg, idx_row,icol,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(self.save_svg)
 
         self.svg_interval = QLineEdit()
         self.svg_interval.setFixedWidth(100)
         self.svg_interval.setValidator(QtGui.QDoubleValidator())
         self.svg_interval.textChanged.connect(self.svg_interval_changed)
-        icol += 1
-        # self.config_tab_layout.addWidget(self.svg_interval, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        self.svg_interval.setStyleSheet(style_sheet_template(QLineEdit))
         hbox.addWidget(self.svg_interval)
 
         label = QLabel(self.default_time_units)
         label.setFixedWidth(100)
-        # self.config_tab_layout.addWidget(label, idx_row,4,1,2) # w, row, column, rowspan, colspan
-        icol += 1
-        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(label)
 
         #------
         self.save_full = QCheckBox_custom("Full")
         self.save_full.setFixedWidth(cbox_width)
         self.save_full.clicked.connect(self.full_clicked)
-        icol += 2
-        # self.config_tab_layout.addWidget(self.save_full, idx_row,icol,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(self.save_full)
-
-        # label = QLabel("every")
-        # label.setAlignment(QtCore.Qt.AlignRight)
-        # icol += 1
-        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
 
         self.full_interval = QLineEdit()
         self.full_interval.setFixedWidth(100)
         self.full_interval.setValidator(QtGui.QDoubleValidator())
         self.full_interval.textChanged.connect(self.full_interval_changed)
-        icol += 1
-        # self.config_tab_layout.addWidget(self.full_interval, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        self.full_interval.setStyleSheet(style_sheet_template(QLineEdit))
         hbox.addWidget(self.full_interval)
 
         label = QLabel(self.default_time_units)
-        icol += 1
-        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(label)
 
         #------
@@ -372,13 +422,73 @@ class Config(QWidget):
         hbox.addStretch()
         vbox.addLayout(hbox)
 
+        #------
+
+        hbox = QHBoxLayout()
+
+        label = QLabel("Plot SVG substrate:")
+        label.setFixedWidth(120)
+        idx_row += 10
+        icol = 0
+        # self.config_tab_layout.addWidget(label, idx_row,icol,1,1) # w, row, column, rowspan, colspan
+        hbox.addWidget(label)
+
+        self.plot_substrate_svg = QCheckBox_custom("enable")
+        self.plot_substrate_svg.setFixedWidth(80)
+        self.plot_substrate_svg.setChecked(True)
+        self.plot_substrate_svg.clicked.connect(self.plot_substrate_svg_clicked)
+        hbox.addWidget(self.plot_substrate_svg) # w, row, column, rowspan, colspan
+
+        self.svg_substrate_to_plot_dropdown = QComboBox()
+        self.svg_substrate_to_plot_dropdown.setFixedWidth(200)
+        self.svg_substrate_to_plot_dropdown.setStyleSheet(style_sheet_template(QComboBox))
+        hbox.addWidget(self.svg_substrate_to_plot_dropdown)
+
+        self.plot_substrate_limits = QCheckBox_custom("Limits enabled")
+        self.plot_substrate_limits.setFixedWidth(130)
+        self.plot_substrate_limits.setChecked(True)
+        self.plot_substrate_limits.clicked.connect(self.plot_substrate_limits_clicked)
+        hbox.addWidget(self.plot_substrate_limits) # w, row, column, rowspan, colspan
+
+        label = QLabel("min")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        hbox.addWidget(label) # w, row, column, rowspan, colspan
+
+        self.svg_substrate_min = QLineEdit()
+        self.svg_substrate_min.setFixedWidth(100)
+        self.svg_substrate_min.setValidator(QtGui.QDoubleValidator())
+        self.svg_substrate_min.textChanged.connect(self.svg_substrate_min_changed)
+        self.svg_substrate_min.setStyleSheet(style_sheet_template(QLineEdit))
+        hbox.addWidget(self.svg_substrate_min)
+
+        label = QLabel("max")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        hbox.addWidget(label) # w, row, column, rowspan, colspan
+
+        self.svg_substrate_max = QLineEdit()
+        self.svg_substrate_max.setFixedWidth(100)
+        self.svg_substrate_max.setValidator(QtGui.QDoubleValidator())
+        self.svg_substrate_max.textChanged.connect(self.svg_substrate_max_changed)
+        self.svg_substrate_max.setStyleSheet(style_sheet_template(QLineEdit))
+        hbox.addWidget(self.svg_substrate_max)
+
+        label = QLabel("colormap")
+        label.setAlignment(QtCore.Qt.AlignRight)
+        hbox.addWidget(label) # w, row, column, rowspan, colspan
+
+        self.svg_substrate_colormap_dropdown = QComboBox()
+        self.svg_substrate_colormap_dropdown.setFixedWidth(100)
+        self.svg_substrate_colormap_dropdown.setStyleSheet(style_sheet_template(QComboBox))
+        hbox.addWidget(self.svg_substrate_colormap_dropdown)
+
+
+        #------
+        hbox.addStretch()
+        vbox.addLayout(hbox)
+
         #============  Cells IC ================================
-        label = QLabel("Initial conditions of cells (x,y,z, type)")
+        label = QLabelSeparator("Initial conditions of cells (x,y,z, type)")
         label.setFixedHeight(label_height)
-        label.setStyleSheet("background-color: orange")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        idx_row += 1
-        # self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
         vbox.addWidget(label)
 
 
@@ -395,8 +505,9 @@ class Config(QWidget):
         hbox.addWidget(label)
         self.csv_folder = QLineEdit()
         self.csv_folder.setFixedWidth(filename_width)
+        self.csv_folder.setStyleSheet(style_sheet_template(QLineEdit))
         if self.nanohub_flag:
-            self.csv_folder.setEnabled(False)
+            self.folder.setEnabled(False)
         hbox.addWidget(self.csv_folder)
 
         label = QLabel("file")
@@ -405,25 +516,23 @@ class Config(QWidget):
 
         self.csv_file = QLineEdit()
         self.csv_file.setFixedWidth(filename_width)
+        self.csv_file.setStyleSheet(style_sheet_template(QLineEdit))
         hbox.addWidget(self.csv_file)
 
-        self.import_seeding_button = QPushButton("Import")
-        self.import_seeding_button.setFixedWidth(100)
-        self.import_seeding_button.setStyleSheet("background-color: lightgreen; color: black")
-        self.import_seeding_button.clicked.connect(self.import_seeding_cb)
-        hbox.addWidget(self.import_seeding_button)
+        if not self.nanohub_flag:
+            self.import_seeding_button = QPushButton("Import")
+            self.import_seeding_button.setFixedWidth(100)
+            self.import_seeding_button.setStyleSheet("background-color: lightgreen; color: black")
+            self.import_seeding_button.clicked.connect(self.import_seeding_cb)
+            hbox.addWidget(self.import_seeding_button)
 
         hbox.addStretch()
 
         vbox.addLayout(hbox)
 
         #============  Cell behavior flags ================================
-        label = QLabel("Cells' global behaviors")
+        label = QLabelSeparator("Cells' global behaviors")
         label.setFixedHeight(label_height)
-        label.setStyleSheet("background-color: orange")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        idx_row += 1
-        # self.config_tab_layout.addWidget(label, idx_row,0,1,20) # w, row, column, rowspan, colspan
         vbox.addWidget(label)
         vbox.addLayout(hbox)
         idx_row += 1
@@ -438,14 +547,11 @@ class Config(QWidget):
         self.virtual_walls = QCheckBox_custom("virtual walls (nudge cells away from domain boundaries)")
         self.virtual_walls.setFixedWidth(400)
         self.virtual_walls.setChecked(True)
-        idx_row += 1
-        # self.config_tab_layout.addWidget(self.virtual_walls, idx_row,1,1,1) # w, row, column, rowspan, colspan
         hbox.addWidget(self.virtual_walls)
 
         # self.disable_auto_springs = QCheckBox_custom("disable springs")
         # self.disable_auto_springs.setFixedWidth(cbox_width)
         # self.disable_auto_springs.setChecked(True)
-        # # self.config_tab_layout.addWidget(self.disable_auto_springs, idx_row,2,1,1) # w, row, column, rowspan, colspan
         # hbox.addWidget(self.disable_auto_springs)
 
         vbox.addLayout(hbox)
@@ -470,12 +576,36 @@ class Config(QWidget):
         self.layout = QVBoxLayout(self)  # leave this!
         self.layout.addWidget(self.scroll)
 
+    def random_seed_gp_cb(self, id):
+        if id == 0:
+            self.random_seed_integer.setEnabled(False)
+        else:
+            self.random_seed_integer.setEnabled(True)
+            self.random_seed_integer.check_validity() # set color based on current validity
 
-    # def folder_name_cb(self):
-    #     try:  # due to the initial callback
-    #         self.plot_folder.setText(self.folder.text())
-    #     except:
-    #         pass
+        # see if random_seed remains in user_parameters
+        if hasattr(self.xml_creator, 'user_params_tab'):
+            # this is called before user_params_tab is created one time, so make sure it exists
+            for idx in range(self.xml_creator.user_params_tab.count):
+                v_name = self.xml_creator.user_params_tab.utable.cellWidget(idx,self.xml_creator.user_params_tab.var_icol_name).text()
+                if v_name=="random_seed":
+                    self.random_seed_warning_label.show_icon()
+                    return
+        self.random_seed_warning_label.hide_icon()
+        
+
+    def random_seed_integer_cb(self, text):
+        if text == "":
+            self.random_seed_integer.setPlaceholderText("system_clock") # warn the user that this will set the seed to system_clock
+
+    def add_day_cb(self):
+        if not self.max_time.text():
+            max_time = float(0.0)
+        else:
+            max_time = float(self.max_time.text())
+        print("max_time=", max_time)
+        max_time += 1440
+        self.max_time.setText(f"{max_time}")
 
     # def plot_folder_name_cb(self):   # allow plotting data from *any* output dir
     #     try:  # due to the initial callback
@@ -492,29 +622,53 @@ class Config(QWidget):
             glayout.addWidget(blank_line, idr,0, 1,1) # w, row, column, rowspan, colspan
 
     def svg_clicked(self, bval):
-        # print("svg_clicked: bval=",bval)
         self.svg_interval.setEnabled(bval)
+        self.plot_substrate_svg.setEnabled(bval)
         if bval:
-            self.svg_interval.setStyleSheet("background-color: white; color: black")
+            if self.plot_substrate_svg.isChecked():
+                self.svg_substrate_to_plot_dropdown.setEnabled(True)
+                self.svg_substrate_colormap_dropdown.setEnabled(True)
         else:
-            self.svg_interval.setStyleSheet("background-color: lightgray; color: black")
+            self.svg_substrate_to_plot_dropdown.setEnabled(False)
+            self.svg_substrate_colormap_dropdown.setEnabled(False)
+            self.plot_substrate_svg.setChecked(False)
+            self.plot_substrate_limits.setEnabled(False)
+            self.plot_substrate_limits.setChecked(False)
+            self.svg_substrate_min.setEnabled(False)
+            self.svg_substrate_max.setEnabled(False)
+
+    def plot_substrate_svg_clicked(self, bval):
+        self.svg_substrate_to_plot_dropdown.setEnabled(bval)
+        self.svg_substrate_colormap_dropdown.setEnabled(bval)
+        self.plot_substrate_limits.setEnabled(bval)
+        if not bval:
+            self.plot_substrate_limits.setChecked(False)
+            self.svg_substrate_min.setEnabled(False)
+            self.svg_substrate_max.setEnabled(False)
+
+    def plot_substrate_limits_clicked(self, bval):
+        self.svg_substrate_min.setEnabled(bval)
+        self.svg_substrate_max.setEnabled(bval)
 
     def svg_interval_changed(self, val):
-        # print("svg_interval_changed(): val=",val)
         if self.sync_output:
             self.full_interval.setText(val)
 
+    def svg_substrate_min_changed(self, val):
+        if self.sync_output:
+            self.svg_substrate_min.setText(val)
+
+    def svg_substrate_max_changed(self, val):
+        if self.sync_output:
+            self.svg_substrate_max.setText(val)
+
     def full_clicked(self, bval):
         self.full_interval.setEnabled(bval)
-        if bval:
-            self.full_interval.setStyleSheet("background-color: white; color: black")
-        else:
-            self.full_interval.setStyleSheet("background-color: lightgray; color: black")
 
     def full_interval_changed(self, val):
-        # print("full_interval_changed(): val=",val)
         if self.sync_output:
             self.svg_interval.setText(val)
+
 
     def sync_clicked(self, bval):
         self.sync_output = bval
@@ -527,17 +681,12 @@ class Config(QWidget):
 
     def cells_csv_clicked(self, bval):
         self.csv_folder.setEnabled(bval)
-        if self.nanohub_flag:
-            self.csv_folder.setEnabled(False)
         self.csv_file.setEnabled(bval)
-        if bval:
-            self.csv_folder.setStyleSheet("background-color: white; color: black")
-            self.csv_file.setStyleSheet("background-color: white; color: black")
-        else:
-            self.csv_folder.setStyleSheet("background-color: lightgray; color: black")
-            self.csv_file.setStyleSheet("background-color: lightgray; color: black")
 
     def fill_gui(self):
+        self.fill_substrates_comboboxes()
+        self.fill_substrate_colormap_comboboxes()
+
         self.xmin.setText(self.xml_root.find(".//x_min").text)
         self.xmax.setText(self.xml_root.find(".//x_max").text)
         self.xdel.setText(self.xml_root.find(".//dx").text)
@@ -564,10 +713,35 @@ class Config(QWidget):
         else:
             print("\n\n---------virtual_wall_at_domain_edge is None !!!!!!!!!!!!1")
 
+        if self.xml_root.find(".//random_seed") is not None:
+            # this intentionally will read in the user_parameter random_seed if it exists. this will facilitate the user using this new placement (importantly, the default custom.cpp will still use the user_parameter to override the value placed here)
+            text = self.xml_root.find(".//random_seed").text
+            print("\n------------------ config_tab: random_seed = ",text)
+            if text in  ["system_clock","random","",None]:
+                self.random_seed_random_button.setChecked(True)
+            else:
+                self.random_seed_integer_button.setChecked(True)
+                self.random_seed_integer.setText(self.xml_root.find(".//random_seed").text)
+        else:
+            self.random_seed_random_button.setChecked(True)
+
+        if self.xml_root.find(".//user_parameters//random_seed") is not None:
+            self.random_seed_warning_label.show_icon()
+
         # self.disable_auto_springs.setChecked(False)
         # if self.xml_root.find(".//disable_automated_spring_adhesions") is not None:
         #     if self.xml_root.find(".//disable_automated_spring_adhesions").text.lower() == "true":
         #         self.disable_auto_springs.setChecked(True)
+
+        # No, let's not do this
+        # if self.xml_root.find(".//disable_automated_spring_adhesions") is not None:
+        #     msg = f"NOTE: disable_automated_spring_adhesions in .xml is deprecated."
+        #     print(msg)
+        #     msgBox = QMessageBox()
+        #     msgBox.setTextFormat(Qt.RichText)
+        #     msgBox.setText(msg)
+        #     msgBox.setStandardButtons(QMessageBox.Ok)
+        #     returnValue = msgBox.exec()
         
         self.max_time.setText(self.xml_root.find(".//max_time").text)
         self.diffusion_dt.setText(self.xml_root.find(".//dt_diffusion").text)
@@ -576,17 +750,52 @@ class Config(QWidget):
         
         self.num_threads.setText(self.xml_root.find(".//omp_num_threads").text)
 
-        self.folder.setText(self.xml_root.find(".//folder").text)
-        # if self.studio_flag:
-        #     self.plot_folder.setText(self.xml_root.find(".//folder").text)
+        self.folder.setText(self.xml_root.find(".//save//folder").text)
         
         self.svg_interval.setText(self.xml_root.find(".//SVG//interval").text)
         # NOTE: do this *after* filling the mcds_interval, directly above, due to the callback/constraints on them??
-        bval = False
+        is_plotting_svg = False
         if self.xml_root.find(".//SVG//enable").text.lower() == 'true':
-            bval = True
-        self.save_svg.setChecked(bval)
-        self.svg_clicked(bval)
+            is_plotting_svg = True
+        self.save_svg.setChecked(is_plotting_svg)
+        self.svg_clicked(is_plotting_svg)
+
+        is_plotting_substrate_on_svg = False
+        if self.xml_root.find(".//SVG//plot_substrate//substrate") is not None:
+            self.svg_substrate_to_plot_dropdown.setCurrentText(self.xml_root.find(".//SVG//plot_substrate//substrate").text)
+            # NOTE: do this *after* filling the mcds_interval, directly above, due to the callback/constraints on them??
+            if is_plotting_svg:
+                uep = self.xml_root.find(".//SVG//plot_substrate")
+                if uep.attrib['enabled'].lower() == 'true':
+                    is_plotting_substrate_on_svg = True
+                self.plot_substrate_svg.setChecked(is_plotting_substrate_on_svg)
+                self.plot_substrate_svg_clicked(is_plotting_substrate_on_svg)
+        else:
+            self.svg_substrate_to_plot_dropdown.itemText(0)
+            self.plot_substrate_svg.setChecked(False)
+            self.plot_substrate_svg_clicked(False)
+
+        if self.xml_root.find(".//SVG//plot_substrate//colormap") is not None:
+            self.svg_substrate_colormap_dropdown.setCurrentText(self.xml_root.find(".//SVG//plot_substrate//colormap").text)
+        else:
+            self.svg_substrate_colormap_dropdown.itemText(0)
+
+        limits_included = False
+        uep = self.xml_root.find(".//SVG//plot_substrate")
+        if (uep is not None) and (uep.attrib['limits'].lower() == 'true'):
+            limits_included = True
+
+        if limits_included:
+            if self.xml_root.find(".//SVG//plot_substrate//min_conc") is not None:
+                self.svg_substrate_min.setText(self.xml_root.find(".//SVG//plot_substrate//min_conc").text)
+            else:
+                limits_included = False
+            if self.xml_root.find(".//SVG//plot_substrate//max_conc") is not None:
+                self.svg_substrate_max.setText(self.xml_root.find(".//SVG//plot_substrate//max_conc").text)
+            else:
+                limits_included = False
+        self.plot_substrate_limits.setChecked(limits_included)
+        self.plot_substrate_limits_clicked(limits_included)
 
         self.full_interval.setText(self.xml_root.find(".//full_data//interval").text)
         bval = False
@@ -672,6 +881,15 @@ class Config(QWidget):
             subelm = ET.SubElement(uep, "virtual_wall_at_domain_edge")
             subelm.text = bval
 
+        if self.xml_root.find(".//options//random_seed") is None:
+            uep = self.xml_root.find('.//options')
+            subelm = ET.SubElement(uep, "random_seed")
+
+        if self.random_seed_random_button.isChecked():
+            self.xml_root.find(".//options//random_seed").text = "system_clock"
+        else:
+            self.xml_root.find(".//options//random_seed").text = self.random_seed_integer.text()
+
         # bval = "false"
         # if self.disable_auto_springs.isChecked():
         #     bval = "true"
@@ -724,13 +942,49 @@ class Config(QWidget):
         self.xml_root.find(".//dt_phenotype").text = self.phenotype_dt.text()
         self.xml_root.find(".//omp_num_threads").text = self.num_threads.text()
         self.xml_root.find(".//save//folder").text = self.folder.text()
-        # print(f'------- config_tab.py: fill_xml(): setting folder = {self.folder.text()}')
+        print(f'------- config_tab.py: fill_xml(): setting folder = {self.folder.text()}')
 
         if self.save_svg.isChecked():
             self.xml_root.find(".//SVG//enable").text = 'true'
         else:
             self.xml_root.find(".//SVG//enable").text = 'false'
         self.xml_root.find(".//SVG//interval").text = self.svg_interval.text()
+
+        if self.xml_root.find(".//SVG//plot_substrate") is None:
+            # add this eleement if it does not exist
+            elm = ET.Element("plot_substrate",
+                                {"enabled":'false', "limits":'false'})
+            ET.SubElement(elm, 'substrate')
+            ET.SubElement(elm, 'min_conc')
+            ET.SubElement(elm, 'max_conc')
+            ET.SubElement(elm, 'colormap')
+            self.xml_root.find('.//save//SVG').insert(2,elm) # [interval, enable, plot_substrate]
+
+        if self.plot_substrate_svg.isChecked():
+            self.xml_root.find(".//SVG//plot_substrate").attrib['enabled'] = 'true'
+        else:
+            self.xml_root.find(".//SVG//plot_substrate").attrib['enabled'] = 'false'
+        if self.plot_substrate_limits.isChecked():
+            self.xml_root.find(".//SVG//plot_substrate").attrib['limits'] = 'true'
+        else:
+            self.xml_root.find(".//SVG//plot_substrate").attrib['limits'] = 'false'
+        self.xml_root.find(".//SVG//plot_substrate//substrate").text = self.svg_substrate_to_plot_dropdown.currentText()
+        if self.plot_substrate_limits.isChecked():
+            if self.xml_root.find(".//SVG//plot_substrate//min_conc") is None:
+                elm = ET.Element("min_conc")
+                self.xml_root.find('.//save//SVG//plot_substrate').insert(1,elm)
+            self.xml_root.find(".//SVG//plot_substrate//min_conc").text = self.svg_substrate_min.text()
+            if self.xml_root.find(".//SVG//plot_substrate//max_conc") is None:
+                elm = ET.Element("max_conc")
+                self.xml_root.find('.//save//SVG//plot_substrate').insert(2,elm)
+            self.xml_root.find(".//SVG//plot_substrate//max_conc").text = self.svg_substrate_max.text()
+        
+        if self.plot_substrate_svg.isChecked():
+            if self.xml_root.find(".//SVG//plot_substrate//colormap") is None:
+                elm = ET.Element("colormap")
+                self.xml_root.find('.//save//SVG//plot_substrate').insert(1,elm)
+            self.xml_root.find(".//SVG//plot_substrate//colormap").text = self.svg_substrate_colormap_dropdown.currentText()
+
 
         if self.save_full.isChecked():
             self.xml_root.find(".//full_data//enable").text = 'true'
@@ -806,7 +1060,7 @@ class Config(QWidget):
 
             # self.add_new_model(self.current_xml_file, True)
             # self.config_file = self.current_xml_file
-            # if self.studio_flag:
+            # if self.xml_creator.studio_flag:
             #     self.run_tab.config_file = self.current_xml_file
             #     self.run_tab.config_xml_name.setText(self.current_xml_file)
             # self.show_sample_model()
@@ -821,3 +1075,102 @@ class Config(QWidget):
 
         else:
             print("import_seeding_cb():  full_path_model_name is NOT valid")
+
+    def fill_substrates_comboboxes(self):
+        logging.debug(f'cell_def_tab.py: ------- fill_substrates_comboboxes')
+        self.substrate_list.clear()  # rwh/todo: where/why/how is this list maintained?
+        self.svg_substrate_to_plot_dropdown.clear()
+        uep = self.xml_root.find('.//microenvironment_setup')  # find unique entry point
+        if uep:
+            idx = 0
+            for var in uep.findall('variable'):
+                logging.debug(f' --> {var.attrib["name"]}')
+                name = var.attrib['name']
+                self.substrate_list.append(name)
+                self.svg_substrate_to_plot_dropdown.addItem(name)
+
+    def fill_substrate_colormap_comboboxes(self):
+        logging.debug(f'cell_def_tab.py: ------- fill_substrate_colormap_comboboxes')
+        self.svg_substrate_colormap_dropdown.addItem("YlOrRd")
+        self.svg_substrate_colormap_dropdown.addItem("YlOrRd_r")
+        self.svg_substrate_colormap_dropdown.addItem("viridis")
+        self.svg_substrate_colormap_dropdown.addItem("viridis_r")
+        self.svg_substrate_colormap_dropdown.addItem("turbo")
+        self.svg_substrate_colormap_dropdown.addItem("turbo_r")
+        self.svg_substrate_colormap_dropdown.addItem("plasma")
+        self.svg_substrate_colormap_dropdown.addItem("plasma_r")
+        self.svg_substrate_colormap_dropdown.addItem("jet")
+        self.svg_substrate_colormap_dropdown.addItem("jet_r")
+
+    def add_new_substrate(self, sub_name):
+        self.substrate_list.append(sub_name)
+        self.svg_substrate_to_plot_dropdown.addItem(sub_name)
+
+    def delete_substrate(self, item_idx):
+        subname = self.svg_substrate_to_plot_dropdown.itemText(item_idx)
+        self.substrate_list.remove(subname)
+        self.svg_substrate_to_plot_dropdown.removeItem(item_idx)
+
+    def renamed_substrate(self, old_name,new_name):
+        self.substrate_list = [new_name if x==old_name else x for x in self.substrate_list]
+        for idx in range(len(self.substrate_list)):
+            if old_name == self.svg_substrate_to_plot_dropdown.itemText(idx):
+                self.svg_substrate_to_plot_dropdown.setItemText(idx, new_name)
+                
+    def count_substrates(self):
+        return len(self.substrate_list)
+    def day_value_changed_str(self, s):
+        self.update_max_time()
+                
+    def hour_value_changed_str(self,s):
+        self.update_max_time()
+                
+    def minute_value_changed_str(self,s):
+        self.update_max_time()
+
+    def minute_fraction_value_changed_str(self,s):
+        self.update_max_time()
+
+    def update_max_time(self):
+        if self.update_max_time_flag:
+            new_time = self.day_spin_box.value()*1440 + self.hour_spin_box.value()*60 + self.minute_spin_box.value() + self.minute_fraction_spin_box.value()
+            new_time = max(0,new_time)
+            force_update = str(new_time) == self.max_time.text() # sometimes the value is the same, but the spinboxes have changes (like hour=-1 after max time at 0)
+            self.max_time.setText(str(new_time))
+            if force_update:
+                self.max_time_changed_cb()
+
+    def max_time_changed_cb(self):
+        self.update_max_time_flag = False # disable QSpinBox cbs to update max time while setting these
+        try:
+            time = floor(float(self.max_time.text()))
+            fraction_minutes = float(self.max_time.text()) - time
+        except:
+            time = 0
+            fraction_minutes = 0
+        minutes = time % 60
+        time -= minutes
+        time = int(time/60)
+        hours = time % 24
+        time -= hours
+        time = int(time/24)
+        days = time
+        self.minute_fraction_spin_box.setValue(fraction_minutes)
+        self.minute_spin_box.setValue(minutes)
+        self.hour_spin_box.setValue(hours)
+        self.day_spin_box.setValue(days)
+        self.update_max_time_flag = True
+
+    def diffusion_dt_changed_cb(self):
+        try:
+            diffusion_dt = float(self.diffusion_dt.text())
+            if diffusion_dt > 0:
+                new_num_decimals = -floor(log10(diffusion_dt))
+                self.minute_fraction_spin_box.setDecimals(new_num_decimals)
+                self.minute_fraction_spin_box.setSingleStep(10**(-new_num_decimals))
+            else:
+                self.minute_fraction_spin_box.setDecimals(2)
+        except:
+            self.minute_fraction_spin_box.setDecimals(2)
+    #-----------------------------------------------------------------------------------------
+    

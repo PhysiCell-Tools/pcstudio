@@ -273,7 +273,7 @@ class PhysiCellXMLCreator(QWidget):
         else:
             self.debug_tab = None
 
-        self.config_tab = Config(self.studio_flag)
+        self.config_tab = Config(self.studio_flag, self.nanohub_flag)
         self.config_tab_index = 0
         self.config_tab.xml_root = self.xml_root
         self.config_tab.fill_gui()
@@ -301,7 +301,8 @@ class PhysiCellXMLCreator(QWidget):
 
         # self.tab2.tree.setCurrentItem(QTreeWidgetItem,0)  # item
 
-        self.celldef_tab = CellDef(self.pytest_flag, self.config_tab)
+        # self.celldef_tab = CellDef(self.pytest_flag, self.config_tab)  # rwh Feb 2025
+        self.celldef_tab = CellDef(self, self.nanohub_flag)
         self.celldef_tab.xml_root = self.xml_root
         if is_movable_flag:
             self.celldef_tab.is_movable_w.setEnabled(True)
@@ -391,8 +392,9 @@ class PhysiCellXMLCreator(QWidget):
 
         if self.studio_flag:
             logging.debug(f'studio.py: creating ICs, Run, and Plot tabs')
-            # self.ics_tab = ICs(self.config_tab, self.celldef_tab, self.biwt_flag)  # rwh
-            self.ics_tab = ICs(self.config_tab, self.celldef_tab)
+            self.ics_tab = ICs(self.config_tab, self.celldef_tab, self.nanohub_flag, self.biwt_flag)  # rwh
+            # self.ics_tab.nanohub_flag = self.nanohub_flag   # rwh Feb 2025
+            # self.ics_tab = ICs(self.config_tab, self.celldef_tab)
             self.config_tab.ics_tab = self.ics_tab
             self.microenv_tab.ics_tab = self.ics_tab
             self.ics_tab.fill_celltype_combobox()
@@ -649,10 +651,11 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         #-----
         file_menu = menubar.addMenu('&File')
         if self.nanohub_flag:
-            model_menu = menubar.addMenu('&Model')
-            model_menu.addAction("template", self.template_cb)
-            model_menu.addAction("biorobots", self.biorobots_cb)
-            model_menu.addAction("tumor_immune", self.tumor_immune_cb)
+            pass   # rwh Feb 2025
+            # model_menu = menubar.addMenu('&Model')
+            # model_menu.addAction("template", self.template_cb)
+            # model_menu.addAction("biorobots", self.biorobots_cb)
+            # model_menu.addAction("tumor_immune", self.tumor_immune_cb)
 
         #--------------
         else:
