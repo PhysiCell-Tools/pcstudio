@@ -71,7 +71,7 @@ BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_contai
 
 PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o \
 PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o PhysiCell_basic_signaling.o \
-PhysiCell_signal_behavior.o 
+PhysiCell_signal_behavior.o PhysiCell_rules.o
 
 PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
 PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_geometry.o
@@ -141,6 +141,8 @@ PhysiCell_basic_signaling.o: ./core/PhysiCell_basic_signaling.cpp
 PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
 	$(COMPILE_COMMAND) -c ./modules/PhysiCell_geometry.cpp 
 
+PhysiCell_rules.o: ./core/PhysiCell_rules.cpp
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_rules.cpp 
 
 # BioFVM core components (needed by PhysiCell)
 	
@@ -225,7 +227,7 @@ data-cleanup:
 	touch ./output/empty.txt
 
 reset:
-	rm -f *.cpp 
+	rm -f *.cpp PhysiCell_cell.o
 	cp ./sample_projects/Makefile-default Makefile 
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
@@ -234,8 +236,12 @@ reset:
 	rm ALL_CITATIONS.txt 
 	cp ./config/PhysiCell_settings-backup.xml ./config/PhysiCell_settings.xml 
 	touch ./config/empty.csv
-	rm ./config/*.csv	
-	
+	rm ./config/*.csv
+	rm ./config/*.m
+	rm ./config/*.cps
+	rm ./config/Toy_Metabolic_Model.xml
+
+
 FOLDER := output
 FRAMERATE := 24
 movie:

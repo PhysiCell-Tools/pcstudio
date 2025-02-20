@@ -2,6 +2,17 @@
 # cp ~/git/PhysiCell_rheiland_dev-9-11-24/core/* core/
 # cp ~/git/PhysiCell_rheiland_dev-9-11-24/modules/* modules/
 
+# from the /src dir
+cp ~/dev/PhysiCell-1.14.2/VERSION.txt .
+cp ~/dev/PhysiCell-1.14.2/changes.md .
+cp ~/dev/PhysiCell-1.14.2/beta/* beta/
+
+cp ~/dev/PhysiCell-1.14.2/licenses/* licenses/
+
+cp -R ~/dev/PhysiCell-1.14.2/addons .
+cp -R ~/dev/PhysiCell-1.14.2/sample_projects .
+cp -R ~/dev/PhysiCell-1.14.2/sample_projects_intracellular .
+
 cp ~/dev/PhysiCell-1.14.2/BioFVM/* BioFVM/
 cp ~/dev/PhysiCell-1.14.2/core/* core/
 cp ~/dev/PhysiCell-1.14.2/modules/* modules/

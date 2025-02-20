@@ -51,7 +51,7 @@ BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_contai
 
 PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o \
 PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o PhysiCell_basic_signaling.o \
-PhysiCell_signal_behavior.o 
+PhysiCell_signal_behavior.o PhysiCell_rules.o
 
 PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
 PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_geometry.o 
@@ -104,6 +104,9 @@ PhysiCell_constants.o: ./core/PhysiCell_constants.cpp
 	
 PhysiCell_signal_behavior.o: ./core/PhysiCell_signal_behavior.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_signal_behavior.cpp 
+
+PhysiCell_rules.o: ./core/PhysiCell_rules.cpp
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_rules.cpp 
 
 # BioFVM core components (needed by PhysiCell)
 	
@@ -264,3 +267,49 @@ upgrade: $(SOURCE)
 	mv -f PhysiCell/documentation/User_Guide.pdf documentation
 	rm -f -r PhysiCell
 	rm -f $(SOURCE) 
+
+
+# use: make save PROJ=your_project_name
+PROJ := my_project
+
+save: 
+	echo "Saving project as $(PROJ) ... "
+	mkdir -p ./user_projects
+	mkdir -p ./user_projects/$(PROJ)
+	mkdir -p ./user_projects/$(PROJ)/custom_modules
+	mkdir -p ./user_projects/$(PROJ)/config 
+	cp main.cpp ./user_projects/$(PROJ)
+	cp Makefile ./user_projects/$(PROJ)
+	cp VERSION.txt ./user_projects/$(PROJ)
+	cp ./config/* ./user_projects/$(PROJ)/config
+	cp ./custom_modules/* ./user_projects/$(PROJ)/custom_modules
+
+load: 
+	echo "Loading project from $(PROJ) ... "
+	cp ./user_projects/$(PROJ)/main.cpp .
+	cp ./user_projects/$(PROJ)/Makefile .
+	cp ./user_projects/$(PROJ)/config/* ./config/ 
+	cp ./user_projects/$(PROJ)/custom_modules/* ./custom_modules/ 
+
+pack:
+	@echo " "
+	@echo "Preparing project $(PROJ) for sharing ... "
+	@echo " " 
+	cd ./user_projects && zip -r $(PROJ).zip $(PROJ)
+	@echo " "
+	@echo "Share ./user_projects/$(PROJ).zip ... "
+	@echo "Other users can unzip $(PROJ).zip in their ./user_projects, compile, and run."
+	@echo " " 
+
+unpack:
+	@echo " "
+	@echo "Preparing shared project $(PROJ).zip for use ... "
+	@echo " " 
+	cd ./user_projects && unzip $(PROJ).zip 
+	@echo " "
+	@echo "Load this project via make load PROJ=$(PROJ) ... "
+	@echo " " 	
+
+list-user-projects:
+	@echo "user projects::"
+	@cd ./user_projects && ls -dt1 * | grep . | sed 's!empty.txt!!'

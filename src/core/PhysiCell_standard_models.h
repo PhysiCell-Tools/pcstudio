@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2022, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -143,6 +143,7 @@ void evaluate_interactions( Cell* pCell, Phenotype& phenotype, double dt );
 // automated cell phagocytosis, attack, and fusion 
 void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double dt ); 
 void standard_cell_transformations( Cell* pCell, Phenotype& phenotype, double dt ); 
+void standard_asymmetric_division_function( Cell* pCell_parent, Cell* pCell_daughter );
 
 void advanced_chemotaxis_function_normalized( Cell* pCell, Phenotype& phenotype , double dt ); 
 void advanced_chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt ); 

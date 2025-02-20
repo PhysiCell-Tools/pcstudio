@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2021, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -65,6 +65,7 @@
 ###############################################################################
 */
  
+#include <sys/stat.h>
 #include "./PhysiCell_settings.h"
 
 using namespace BioFVM; 
@@ -78,10 +79,12 @@ bool physicell_config_dom_initialized = false;
 pugi::xml_document physicell_config_doc; 	
 pugi::xml_node physicell_config_root; 
 	
-bool load_PhysiCell_config_file( std::string filename )
+bool read_PhysiCell_config_file( std::string filename )
 {
+	physicell_config_dom_initialized = false; 
+
 	std::cout << "Using config file " << filename << " ... " << std::endl ; 
-	pugi::xml_parse_result result = physicell_config_doc.load_file( filename.c_str()  );
+	pugi::xml_parse_result result = physicell_config_doc.load_file( filename.c_str() );
 	
 	if( result.status != pugi::xml_parse_status::status_ok )
 	{
@@ -91,22 +94,30 @@ bool load_PhysiCell_config_file( std::string filename )
 	
 	physicell_config_root = physicell_config_doc.child("PhysiCell_settings");
 	physicell_config_dom_initialized = true; 
-	
+	return true;
+}
+
+bool load_PhysiCell_config_file( std::string filename )
+{
+	if (!read_PhysiCell_config_file( filename ))
+	{ return false; }
+
 	PhysiCell_settings.read_from_pugixml(); 
 	
 	// now read the microenvironment (optional) 
 	
 	if( !setup_microenvironment_from_XML( physicell_config_root ) )
 	{
-		std::cout << std::endl 
-				  << "Warning: microenvironment_setup not found in " << filename << std::endl 
-				  << "         Either manually setup microenvironment in setup_microenvironment() (custom.cpp)" << std::endl
-				  << "         or consult documentation to add microenvironment_setup to your configuration file." << std::endl << std::endl; 
+		std::cout << std::endl
+			<< "Warning: microenvironment_setup not found in " << filename << std::endl
+			<< "         Either manually setup microenvironment in setup_microenvironment() (custom.cpp)" << std::endl
+			<< "         or consult documentation to add microenvironment_setup to your configuration file." << std::endl << std::endl;
 	}
 	
 	// now read user parameters
-	
-	parameters.read_from_pugixml( physicell_config_root ); 
+	parameters.read_from_pugixml( physicell_config_root );
+
+	create_output_directory( PhysiCell_settings.folder );
 
 	return true; 	
 }
@@ -270,9 +281,9 @@ void PhysiCell_Settings::read_from_pugixml( void )
 		}
 		else
 		{
-			int seed;
+			unsigned int seed;
 			try
-			{ seed = std::stoi(random_seed); }
+			{ seed = std::stoul(random_seed); }
 			catch(const std::exception& e)
 			{
 				std::cout << "ERROR: " << random_seed << " is not a valid random seed. It must be an integer. Fix this within <options>." << std::endl;
@@ -318,6 +329,54 @@ void PhysiCell_Settings::read_from_pugixml( void )
 	// random seed options 
 	
 	return; 
+}
+
+bool create_directories(const std::string &path)
+{
+    size_t pos = 0;
+    std::string currentPath;
+
+	// Check for Unix-like absolute path or Windows absolute path with drive letter
+	if (path[0] == '\\' || path[0] == '/')
+	{
+		pos = 1; // Unix-like or Windows absolute path starting with backslash or forward slash
+	}
+	else if (path.length() > 2 && isalpha(path[0]) && path[1] == ':' && (path[2] == '\\' || path[2] == '/'))
+	{
+		pos = 3; // Windows absolute path with drive letter
+	}
+
+	while ((pos = path.find_first_of("/\\", pos)) != std::string::npos) {
+        currentPath = path.substr(0, pos++);
+        if (!create_directory(currentPath)) {
+            return false;
+        }
+    }
+    return create_directory(path);
+}
+
+bool create_directory(const std::string &path)
+{
+#if defined(_WIN32)
+	bool success = mkdir(path.c_str()) == 0;
+#else
+	bool success = mkdir(path.c_str(), 0755) == 0;
+#endif
+	return success || errno == EEXIST;
+}
+
+void create_output_directory(const std::string& path)
+{
+	if (!create_directories(path))
+	{
+		std::cout << "ERROR: Could not create output directory " << path << " ! Quitting." << std::endl;
+		exit(-1);
+	}
+}
+
+void create_output_directory(void)
+{
+	create_output_directory(PhysiCell_settings.folder);
 }
 
 PhysiCell_Globals PhysiCell_globals; 
@@ -901,6 +960,8 @@ bool setup_microenvironment_from_XML( pugi::xml_node root_node )
 		{
 			default_microenvironment_options.initial_condition_file_type = node.attribute("type").as_string();
 			default_microenvironment_options.initial_condition_file = xml_get_string_value(node, "filename");
+
+			copy_file_to_output(default_microenvironment_options.initial_condition_file);
 		}
 	}
 
