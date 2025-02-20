@@ -1,5 +1,6 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME0:= project
+PROGRAM_NAME1:= biorobots
 
 osRelease = $(shell lsb_release -r | sed -e "s/Release:\W*//" -e "s/\..*//")
 ifeq ($(osRelease),7)
@@ -36,7 +37,24 @@ ifdef PHYSICELL_CPP
 endif
 
 ARCH := native # best auto-tuning
+# ARCH := core2 # a reasonably safe default for most CPUs since 2007
+# ARCH := corei7
+# ARCH := corei7-avx # earlier i7 
+# ARCH := core-avx-i # i7 ivy bridge or newer 
+# ARCH := core-avx2 # i7 with Haswell or newer
+# ARCH := nehalem
+# ARCH := westmere
+# ARCH := sandybridge # circa 2011
+# ARCH := ivybridge   # circa 2012
+# ARCH := haswell     # circa 2013
+# ARCH := broadwell   # circa 2014
+# ARCH := skylake     # circa 2015
+# ARCH := bonnell
+# ARCH := silvermont
+# ARCH := skylake-avx512
+# ARCH := nocona #64-bit pentium 4 or later 
 
+# CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 # remove the -march arg to avoid SIGILL error on nanoHUB
 CFLAGS := -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 
@@ -74,7 +92,12 @@ pugixml_OBJECTS := pugixml.o
 
 PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) 
 
+#ALL_OBJECTS4 := $(PhysiCell_OBJECTS) interactions.o
+
+#ALL_OBJECTS := $(PhysiCell_OBJECTS) $(rules_custom_module_OBJECTS)
+
 ALL_OBJECTS0 := $(PhysiCell_OBJECTS) custom.o
+ALL_OBJECTS1 := $(PhysiCell_OBJECTS) biorobots.o
 
 # compile the project 
 
@@ -83,6 +106,8 @@ ALL_OBJECTS0 := $(PhysiCell_OBJECTS) custom.o
 
 all: main.cpp $(ALL_OBJECTS0) $(ALL_OBJECTS1)
 	$(COMPILE_COMMAND) -o $(PROGRAM_NAME0) $(ALL_OBJECTS0) main.cpp 
+	$(COMPILE_COMMAND) -o $(PROGRAM_NAME1) $(ALL_OBJECTS1) main.cpp 
+#	$(COMPILE_COMMAND) -o $(PROGRAM_NAME1) $(ALL_OBJECTS1) main-biorobots.cpp 
 
 # PhysiCell core components	
 
@@ -178,20 +203,28 @@ PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
 
 custom.o: ./custom_modules/custom.cpp 
 	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
+biorobots.o: ./custom_modules/biorobots.cpp 
+	$(COMPILE_COMMAND) -c ./custom_modules/biorobots.cpp
+#interactions.o: ./custom_modules/interactions.cpp 
+#	$(COMPILE_COMMAND) -c ./custom_modules/interactions.cpp
+
 	
 # next targets for nanoHUB
 install: 
 	$(MODINIT); $(MODCMD); make all
 	install --mode 0755 -D $(PROGRAM_NAME0) $(BIN)/$(PROGRAM_NAME0)
+	install --mode 0755 -D $(PROGRAM_NAME1) $(BIN)/$(PROGRAM_NAME1)
 
 distclean: clean
 	rm -f $(BIN)/$(PROGRAM_NAME0)
+	rm -f $(BIN)/$(PROGRAM_NAME1)
 	rm -rf $(BIN)/__pycache__
 	rm -rf ../.ipynb_checkpoints
 
 clean:
 	rm -f *.o
 	rm -f $(PROGRAM_NAME0)
+	rm -f $(PROGRAM_NAME1)
 	
 data-cleanup:
 	rm -rf ./output
