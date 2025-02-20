@@ -234,7 +234,7 @@ class RunModel(QWidget):
                     self.enable_run(True)
                     return
 
-                # logging.debug(f'run_tab.py: ----> writing modified model to {self.config_file}')
+                logging.debug(f'run_tab.py: ----> writing modified model to {self.config_file}')
                 # print("run_tab.py: ----> new_config_file = ",new_config_file)
                 # print("run_tab.py: ----> self.config_file = ",self.config_file)
                 if self.nanohub_flag:
@@ -249,6 +249,7 @@ class RunModel(QWidget):
                     # rwh: 6-1-23: No, don't run from tmpdir, but session root!
                     # os.chdir(tdir)   # run exec from here on nanoHUB
 
+                    logging.debug(f'run_tab.py:  writing config to {str(new_config_file)}')
                     self.tree.write(new_config_file)  # saves modified XML to config.xml (NOT tmpdir/config.xml)
                     self.debug_tab.add_msg("run_tab: writing config to "+str(new_config_file))
 
@@ -309,10 +310,12 @@ class RunModel(QWidget):
                 exec_str = self.exec_name.text()
                 xml_str = self.config_xml_name.text()
                 print("\n--- run_tab:  xml_str before run is ",xml_str)
-                if self.nanohub_flag:
+                if self.nanohub_flag:   # rwh 2/19/25
+                # if False and self.nanohub_flag:   # rwh 2/19/25
                     self.p.start("submit",["--local",exec_str,xml_str])
                     self.debug_tab.add_msg("run_tab: submit --local "+exec_str + " "+xml_str)
                     cwd = os.getcwd()
+                    logging.debug(f'run_tab.py:  cwd when doing submit is {cwd}')
                     self.debug_tab.add_msg("                cwd= " + cwd)
                     # self.debug_tab.add_msg("self.p = "+str(self.p))
                 else:
