@@ -25,7 +25,8 @@ import numpy as np
 import pandas as pd
 import time
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Patch, Rectangle, Annulus, Wedge
+#from matplotlib.patches import Circle, Patch, Rectangle, Annulus, Wedge  # rwh Feb 2025 (out of date mpl on nanoHBUB)
+from matplotlib.patches import Circle, Patch, Rectangle, Wedge
 from matplotlib.collections import PatchCollection
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
