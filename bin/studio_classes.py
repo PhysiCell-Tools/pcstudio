@@ -179,7 +179,7 @@ class QLineEdit_custom(QLineEdit):
         except ValueError:
             pass
 
-radiobutton_style = """
+radiobutton_style_svg = """
 QRadioButton {
     spacing: 4px; /* Space between indicator and text */
     padding-left: 4px;
@@ -193,6 +193,25 @@ QRadioButton::indicator:unchecked {
 }
 QRadioButton::indicator:checked {
     image: url(images:RadioButtonChecked.svg);
+}
+QRadioButton::indicator:disabled:checked {
+    image: url(images:RadioButtonDisabledChecked.svg);
+}
+"""
+radiobutton_style= """
+QRadioButton {
+    spacing: 4px; /* Space between indicator and text */
+    padding-left: 4px;
+}
+QRadioButton::indicator {
+    width: 12;
+    height: 12;
+}
+QRadioButton::indicator:unchecked {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+QRadioButton::indicator:checked {
+    background-color: rgba(0, 0, 0, 0.5);
 }
 QRadioButton::indicator:disabled:checked {
     image: url(images:RadioButtonDisabledChecked.svg);
