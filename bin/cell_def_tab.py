@@ -6578,6 +6578,12 @@ Please fix the IDs in the Cell Types tab. Also, be mindful of how this may affec
 
             #-----  rwh: Sep 2024
             # self.param_d[cdef]['intracellular'] = {}
+            try:  # rwh Feb 2025 nanoHUB
+                if "none" in self.intracellular_type_dropdown.currentText():
+                    pass
+            except:
+                return
+
             if "none" in self.intracellular_type_dropdown.currentText():
                 self.param_d[cdef]['intracellular'] = None
             # elif "Boolean" in self.intracellular_type_dropdown.currentText():
