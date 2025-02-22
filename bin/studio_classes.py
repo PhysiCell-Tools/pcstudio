@@ -211,7 +211,7 @@ QRadioButton::indicator:unchecked {
     background-color: rgba(255, 255, 255, 0.5);
 }
 QRadioButton::indicator:checked {
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 200, 0, 1.0);
 }
 QRadioButton::indicator:disabled:checked {
     image: url(images:RadioButtonDisabledChecked.svg);
