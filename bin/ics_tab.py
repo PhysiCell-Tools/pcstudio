@@ -594,184 +594,185 @@ class ICs(QWidget):
 
         #--------------------- substrate save button
 
-        label = QLabel("Substrate Initital Conditions")
-        # label.setFixedHeight(label_height)
-        label.setStyleSheet("background-color: orange")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        idx_row = 0
-        self.vbox.addWidget(label) # w, row, column, rowspan, colspan
+        if not self.nanohub_flag:
+            label = QLabel("Substrate Initital Conditions")
+            # label.setFixedHeight(label_height)
+            label.setStyleSheet("background-color: orange")
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            idx_row = 0
+            self.vbox.addWidget(label) # w, row, column, rowspan, colspan
 
 
-        hbox = QHBoxLayout()
-        label = QLabel("Substrate")
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label)
-        
-        self.substrate_combobox = QComboBox()
-        self.substrate_combobox.setFixedWidth(200)  # how wide is sufficient?
-        self.substrate_combobox.currentIndexChanged.connect(self.substrate_combobox_changed_cb)
-        hbox.addWidget(self.substrate_combobox)
+            hbox = QHBoxLayout()
+            label = QLabel("Substrate")
+            label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(label)
+            
+            self.substrate_combobox = QComboBox()
+            self.substrate_combobox.setFixedWidth(200)  # how wide is sufficient?
+            self.substrate_combobox.currentIndexChanged.connect(self.substrate_combobox_changed_cb)
+            hbox.addWidget(self.substrate_combobox)
 
-        msg = """
-            How to use the substrate plotter:
-            * select a brush and the parameters
-            * click on the plot to start plotting
-            * click again to stop (or leave the plot area)
-            * Note: the Gaussian brush will only update a pixel value if it is greater than the current value
-        """
-        self.ic_substrate_question_label = HoverQuestion(msg)
-        self.ic_substrate_question_label.show_icon()
-        hbox.addWidget(self.ic_substrate_question_label)
+            msg = """
+                How to use the substrate plotter:
+                * select a brush and the parameters
+                * click on the plot to start plotting
+                * click again to stop (or leave the plot area)
+                * Note: the Gaussian brush will only update a pixel value if it is greater than the current value
+            """
+            self.ic_substrate_question_label = HoverQuestion(msg)
+            self.ic_substrate_question_label.show_icon()
+            hbox.addWidget(self.ic_substrate_question_label)
 
-        hbox.addStretch(1)
-        self.vbox.addLayout(hbox)
+            hbox.addStretch(1)
+            self.vbox.addLayout(hbox)
 
-        hbox = QHBoxLayout()
-        label = QLabel("Brush")
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label)
-        
-        self.brush_combobox = QComboBox()
-        self.brush_combobox.addItem("point")
-        self.brush_combobox.addItem("rectangle")
-        self.brush_combobox.addItem("gaussian_rectangle")
-        self.brush_combobox.currentIndexChanged.connect(self.brush_combobox_changed_cb)
-        self.brush_combobox.setFixedWidth(200)  # how wide is sufficient?
-        hbox.addWidget(self.brush_combobox)
+            hbox = QHBoxLayout()
+            label = QLabel("Brush")
+            label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(label)
+            
+            self.brush_combobox = QComboBox()
+            self.brush_combobox.addItem("point")
+            self.brush_combobox.addItem("rectangle")
+            self.brush_combobox.addItem("gaussian_rectangle")
+            self.brush_combobox.currentIndexChanged.connect(self.brush_combobox_changed_cb)
+            self.brush_combobox.setFixedWidth(200)  # how wide is sufficient?
+            hbox.addWidget(self.brush_combobox)
 
-        label = QLabel("Value")
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label)
-        
-        self.substrate_set_value = QLineEdit()
-        self.substrate_set_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_set_value.setEnabled(True)
-        self.substrate_set_value.setText(str(self.current_substrate_set_value))
-        self.substrate_set_value.textChanged.connect(self.substrate_set_value_changed_cb)
-        self.substrate_set_value.setValidator(QtGui.QDoubleValidator(0.,10000.,4))
-        hbox.addWidget(self.substrate_set_value)
-        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
-        self.vbox.addLayout(hbox)
+            label = QLabel("Value")
+            label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(label)
+            
+            self.substrate_set_value = QLineEdit()
+            self.substrate_set_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_set_value.setEnabled(True)
+            self.substrate_set_value.setText(str(self.current_substrate_set_value))
+            self.substrate_set_value.textChanged.connect(self.substrate_set_value_changed_cb)
+            self.substrate_set_value.setValidator(QtGui.QDoubleValidator(0.,10000.,4))
+            hbox.addWidget(self.substrate_set_value)
+            hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+            self.vbox.addLayout(hbox)
 
-        hbox = QHBoxLayout()
-        self.substrate_par_1_label = QLabel()
-        self.substrate_par_1_label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(self.substrate_par_1_label)
+            hbox = QHBoxLayout()
+            self.substrate_par_1_label = QLabel()
+            self.substrate_par_1_label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(self.substrate_par_1_label)
 
-        self.substrate_par_1_value = QLineEdit()
-        self.substrate_par_1_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_par_1_value.setEnabled(False)
-        self.substrate_par_1_value.textChanged.connect(self.substrate_par_1_value_changed_cb)
-        self.substrate_par_1_value.setStyleSheet(style_sheet_template(QLineEdit))
-        self.substrate_par_1_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
-        hbox.addWidget(self.substrate_par_1_value)
+            self.substrate_par_1_value = QLineEdit()
+            self.substrate_par_1_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_par_1_value.setEnabled(False)
+            self.substrate_par_1_value.textChanged.connect(self.substrate_par_1_value_changed_cb)
+            self.substrate_par_1_value.setStyleSheet(style_sheet_template(QLineEdit))
+            self.substrate_par_1_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
+            hbox.addWidget(self.substrate_par_1_value)
 
-        self.substrate_par_2_label = QLabel()
-        self.substrate_par_2_label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(self.substrate_par_2_label)
+            self.substrate_par_2_label = QLabel()
+            self.substrate_par_2_label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(self.substrate_par_2_label)
 
-        self.substrate_par_2_value = QLineEdit()
-        self.substrate_par_2_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_par_2_value.setEnabled(False)
-        self.substrate_par_2_value.textChanged.connect(self.substrate_par_2_value_changed_cb)
-        self.substrate_par_2_value.setStyleSheet(style_sheet_template(QLineEdit))
-        self.substrate_par_2_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
-        hbox.addWidget(self.substrate_par_2_value)
+            self.substrate_par_2_value = QLineEdit()
+            self.substrate_par_2_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_par_2_value.setEnabled(False)
+            self.substrate_par_2_value.textChanged.connect(self.substrate_par_2_value_changed_cb)
+            self.substrate_par_2_value.setStyleSheet(style_sheet_template(QLineEdit))
+            self.substrate_par_2_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
+            hbox.addWidget(self.substrate_par_2_value)
 
-        self.substrate_par_3_label = QLabel()
-        self.substrate_par_3_label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(self.substrate_par_3_label)
+            self.substrate_par_3_label = QLabel()
+            self.substrate_par_3_label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(self.substrate_par_3_label)
 
-        self.substrate_par_3_value = QLineEdit()
-        self.substrate_par_3_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_par_3_value.setEnabled(False)
-        self.substrate_par_3_value.textChanged.connect(self.substrate_par_3_value_changed_cb)
-        self.substrate_par_3_value.setStyleSheet(style_sheet_template(QLineEdit))
-        self.substrate_par_3_value.setValidator(QtGui.QDoubleValidator(0.,10000.,3))
-        hbox.addWidget(self.substrate_par_3_value)
-        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
-        
-        self.vbox.addLayout(hbox)
+            self.substrate_par_3_value = QLineEdit()
+            self.substrate_par_3_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_par_3_value.setEnabled(False)
+            self.substrate_par_3_value.textChanged.connect(self.substrate_par_3_value_changed_cb)
+            self.substrate_par_3_value.setStyleSheet(style_sheet_template(QLineEdit))
+            self.substrate_par_3_value.setValidator(QtGui.QDoubleValidator(0.,10000.,3))
+            hbox.addWidget(self.substrate_par_3_value)
+            hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+            
+            self.vbox.addLayout(hbox)
 
-        hbox = QHBoxLayout()
+            hbox = QHBoxLayout()
 
-        self.fix_cmap_checkbox = QCheckBox_custom('fix: ')
-        self.fix_cmap_flag = False
-        self.fix_cmap_checkbox.setEnabled(True)
-        self.fix_cmap_checkbox.setChecked(self.fix_cmap_flag)
-        self.fix_cmap_checkbox.clicked.connect(self.fix_cmap_toggle_cb)
-        hbox.addWidget(self.fix_cmap_checkbox)
+            self.fix_cmap_checkbox = QCheckBox_custom('fix: ')
+            self.fix_cmap_flag = False
+            self.fix_cmap_checkbox.setEnabled(True)
+            self.fix_cmap_checkbox.setChecked(self.fix_cmap_flag)
+            self.fix_cmap_checkbox.clicked.connect(self.fix_cmap_toggle_cb)
+            hbox.addWidget(self.fix_cmap_checkbox)
 
-        cvalue_width = 60
-        label = QLabel("cmin")
-        # label.setFixedWidth(label_width)
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        # label.setAlignment(QtCore.Qt.AlignLeft)
-        hbox.addWidget(label)
-        self.cmin = QLineEdit()
-        self.cmin.setText('0.0')
-        self.cmin.setEnabled(False)
-        self.cmin.setStyleSheet(style_sheet_template(QLineEdit))
-        # self.cmin.textChanged.connect(self.change_plot_range)
-        self.cmin.editingFinished.connect(self.cmin_cmax_cb)
-        self.cmin.setFixedWidth(cvalue_width)
-        self.cmin.setValidator(QtGui.QDoubleValidator())
-        # self.cmin.setEnabled(False)
-        hbox.addWidget(self.cmin)
+            cvalue_width = 60
+            label = QLabel("cmin")
+            # label.setFixedWidth(label_width)
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            # label.setAlignment(QtCore.Qt.AlignLeft)
+            hbox.addWidget(label)
+            self.cmin = QLineEdit()
+            self.cmin.setText('0.0')
+            self.cmin.setEnabled(False)
+            self.cmin.setStyleSheet(style_sheet_template(QLineEdit))
+            # self.cmin.textChanged.connect(self.change_plot_range)
+            self.cmin.editingFinished.connect(self.cmin_cmax_cb)
+            self.cmin.setFixedWidth(cvalue_width)
+            self.cmin.setValidator(QtGui.QDoubleValidator())
+            # self.cmin.setEnabled(False)
+            hbox.addWidget(self.cmin)
 
-        label = QLabel("cmax")
-        # label.setFixedWidth(label_width)
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        hbox.addWidget(label)
-        self.cmax = QLineEdit()
-        self.cmax.setText('1.0')
-        self.cmax.setEnabled(False)
-        self.cmax.setStyleSheet(style_sheet_template(QLineEdit))
-        self.cmax.editingFinished.connect(self.cmin_cmax_cb)
-        self.cmax.setFixedWidth(cvalue_width)
-        self.cmax.setValidator(QtGui.QDoubleValidator())
-        # self.cmax.setEnabled(False)
-        hbox.addWidget(self.cmax)
+            label = QLabel("cmax")
+            # label.setFixedWidth(label_width)
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            hbox.addWidget(label)
+            self.cmax = QLineEdit()
+            self.cmax.setText('1.0')
+            self.cmax.setEnabled(False)
+            self.cmax.setStyleSheet(style_sheet_template(QLineEdit))
+            self.cmax.editingFinished.connect(self.cmin_cmax_cb)
+            self.cmax.setFixedWidth(cvalue_width)
+            self.cmax.setValidator(QtGui.QDoubleValidator())
+            # self.cmax.setEnabled(False)
+            hbox.addWidget(self.cmax)
 
-        label = QLabel("scale")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        hbox.addWidget(label)
+            label = QLabel("scale")
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            hbox.addWidget(label)
 
-        self.color_scale_combobox = QComboBox()
-        self.color_scale_combobox.currentIndexChanged.connect(self.color_scale_combobox_changed_cb)
-        self.color_scale_combobox.setFixedWidth(100)  # how wide is sufficient?
-        self.color_scale_combobox.addItem("auto")
-        self.color_scale_combobox.addItem("linear")
-        self.color_scale_combobox.addItem("log")
-        hbox.addWidget(self.color_scale_combobox)
+            self.color_scale_combobox = QComboBox()
+            self.color_scale_combobox.currentIndexChanged.connect(self.color_scale_combobox_changed_cb)
+            self.color_scale_combobox.setFixedWidth(100)  # how wide is sufficient?
+            self.color_scale_combobox.addItem("auto")
+            self.color_scale_combobox.addItem("linear")
+            self.color_scale_combobox.addItem("log")
+            hbox.addWidget(self.color_scale_combobox)
 
-        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+            hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
 
-        self.vbox.addLayout(hbox)
+            self.vbox.addLayout(hbox)
 
-        hbox = QHBoxLayout()
-        self.save_button_substrates = QPushButton("Save")
-        self.save_button_substrates.setFixedWidth(110)
-        self.save_button_substrates.setStyleSheet("QPushButton {background-color: yellow; color: black;}")
-        self.save_button_substrates.clicked.connect(self.save_substrate_cb)
-        hbox.addWidget(self.save_button_substrates)
+            hbox = QHBoxLayout()
+            self.save_button_substrates = QPushButton("Save")
+            self.save_button_substrates.setFixedWidth(110)
+            self.save_button_substrates.setStyleSheet("QPushButton {background-color: yellow; color: black;}")
+            self.save_button_substrates.clicked.connect(self.save_substrate_cb)
+            hbox.addWidget(self.save_button_substrates)
 
-        hbox.addWidget(QLabel("to:"))
+            hbox.addWidget(QLabel("to:"))
 
-        self.substrate_save_folder = QLineEdit()
-        self.substrate_save_folder.setPlaceholderText("folder")
-        self.substrate_save_file = QLineEdit_custom()
-        csv_validator = QRegExpValidator(QtCore.QRegExp(r'^.+\.csv$'))
-        self.substrate_save_file.setValidator(csv_validator)
-        self.substrate_save_file.setPlaceholderText("file.csv")
+            self.substrate_save_folder = QLineEdit()
+            self.substrate_save_folder.setPlaceholderText("folder")
+            self.substrate_save_file = QLineEdit_custom()
+            csv_validator = QRegExpValidator(QtCore.QRegExp(r'^.+\.csv$'))
+            self.substrate_save_file.setValidator(csv_validator)
+            self.substrate_save_file.setPlaceholderText("file.csv")
 
-        hbox.addWidget(self.substrate_save_folder)
-        hbox.addWidget(QLabel(os.path.sep))
-        hbox.addWidget(self.substrate_save_file)
+            hbox.addWidget(self.substrate_save_folder)
+            hbox.addWidget(QLabel(os.path.sep))
+            hbox.addWidget(self.substrate_save_file)
 
-        hbox.addStretch()
+            hbox.addStretch()
 
-        self.vbox.addLayout(hbox)
+            self.vbox.addLayout(hbox)
 
         if not self.nanohub_flag:
             self.import_substrate_button = QPushButton("Import")
@@ -1222,7 +1223,10 @@ class ICs(QWidget):
         self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
         self.cbar1 = self.figure.colorbar(self.substrate_plot, cax=self.cax1)
         self.cbar1.ax.tick_params(labelsize=self.fontsize)
-        self.cbar1.set_label(self.substrate_combobox.currentText()) 
+        try:
+            self.cbar1.set_label(self.substrate_combobox.currentText()) 
+        except:
+            pass
         
         self.time_of_last_substrate_plot_update = time.time()
         self.substrate_plot_time_delay = 0.1
@@ -2445,6 +2449,8 @@ class ICs(QWidget):
             pass
         
     def fill_substrate_combobox(self):
+        if self.nanohub_flag:
+            return
         logging.debug(f'ics_tab.py: ------- fill_substrate_combobox')
         self.substrate_list.clear()  # rwh/todo: where/why/how is this list maintained?
         self.substrate_combobox.clear()
