@@ -186,7 +186,10 @@ class Config(StudioTab):
 
         self.max_time = QLineEdit()
         self.max_time.setValidator(QtGui.QDoubleValidator(bottom=0))
-        self.max_time.textChanged.connect(self.max_time_changed_cb)
+        try:
+            self.max_time.textChanged.connect(self.max_time_changed_cb)
+        except:
+            self.max_time.valueChanged.connect(self.max_time_changed_cb)
         self.config_tab_layout.addWidget(self.max_time, idx_row,1,1,1) # w, row, column, rowspan, colspan
 
         label = QLabel(self.default_time_units)
@@ -211,7 +214,10 @@ class Config(StudioTab):
 
         self.hour_spin_box.setSuffix(" h")
         self.hour_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
+        try:
+            self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
+        except:
+            self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
 
         self.config_tab_layout.addWidget(self.hour_spin_box,idx_row,4,1,1)
 
@@ -222,7 +228,10 @@ class Config(StudioTab):
 
         self.minute_spin_box.setSuffix(" min")
         self.minute_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.minute_spin_box.textChanged.connect(self.minute_value_changed_str)
+        try:
+            self.minute_spin_box.textChanged.connect(self.minute_value_changed_str)
+        except:
+            self.minute_spin_box.valueChanged.connect(self.minute_value_changed_str)
 
         self.config_tab_layout.addWidget(self.minute_spin_box,idx_row,5,1,1)
 
