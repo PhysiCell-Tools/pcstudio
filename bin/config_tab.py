@@ -203,7 +203,10 @@ class Config(StudioTab):
 
         self.day_spin_box.setSuffix(" d")
         self.day_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.day_spin_box.textChanged.connect(self.day_value_changed_str)
+        try:
+            self.day_spin_box.textChanged.connect(self.day_value_changed_str)
+        except:
+            self.day_spin_box.valueChanged.connect(self.day_value_changed_str)
 
         self.config_tab_layout.addWidget(self.day_spin_box,idx_row,3,1,1)
 
@@ -217,7 +220,7 @@ class Config(StudioTab):
         try:
             self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
         except:
-            self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
+            self.hour_spin_box.valueChanged.connect(self.hour_value_changed_str)
 
         self.config_tab_layout.addWidget(self.hour_spin_box,idx_row,4,1,1)
 
@@ -244,7 +247,10 @@ class Config(StudioTab):
 
         self.minute_fraction_spin_box.setSuffix(" min")
         self.minute_fraction_spin_box.setSingleStep(0.01)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.minute_fraction_spin_box.textChanged.connect(self.minute_fraction_value_changed_str)
+        try:
+            self.minute_fraction_spin_box.textChanged.connect(self.minute_fraction_value_changed_str)
+        except:
+            self.minute_fraction_spin_box.valueChanged.connect(self.minute_fraction_value_changed_str)
 
         self.config_tab_layout.addWidget(self.minute_fraction_spin_box,idx_row,6,1,1)
 
