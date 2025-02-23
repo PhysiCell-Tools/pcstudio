@@ -1428,7 +1428,7 @@ class VisBase():
                 self.population_plot[self.discrete_scalar].ax0.set_title(self.discrete_scalar, fontsize=10)
             self.population_plot[self.discrete_scalar].ax0.legend(loc='center right', prop={'size': 8})
             self.population_plot[self.discrete_scalar].canvas.update()
-            try:
+            try:  # rwh Feb 2025 nanoHUB
                 self.population_plot[self.discrete_scalar].canvas.draw()
             except:
                 pass
