@@ -1022,6 +1022,12 @@ class Vis(VisBase, QWidget):
             try:  # rwh Feb 2025 nanohub
                 self.ax0.legend(handles=handles,labels=names_observed, loc='upper center', bbox_to_anchor=(0.5, -0.15),ncols=4)
             except:
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Information)
+                msg = "Unsupported legend features for discrete values"
+                msgBox.setText(msg)
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                msgBox.exec()
                 pass
 
         else:   # Note: vis_tab_ecm.py seems to avoid any memory leak and with simpler code
