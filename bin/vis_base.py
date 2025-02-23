@@ -1428,7 +1428,10 @@ class VisBase():
                 self.population_plot[self.discrete_scalar].ax0.set_title(self.discrete_scalar, fontsize=10)
             self.population_plot[self.discrete_scalar].ax0.legend(loc='center right', prop={'size': 8})
             self.population_plot[self.discrete_scalar].canvas.update()
-            self.population_plot[self.discrete_scalar].canvas.draw()
+            try:
+                self.population_plot[self.discrete_scalar].canvas.draw()
+            except:
+                pass
             self.population_plot[self.discrete_scalar].show()
 
     # ------ overridden for 3D (vis3D_tab.py)
