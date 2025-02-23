@@ -1211,22 +1211,23 @@ class ICs(QWidget):
         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
         self.ax0.set_aspect(1.0)
 
-        try:
-            # self.cmap = plt.cm.get_cmap("viridis")
-            self.cmap = cm.get_cmap("viridis")
-        except:
-            self.cmap = colormaps.get_cmap("viridis")
-        self.setupSubstratePlotParameters()
-        self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
-        
-        ax1_divider = make_axes_locatable(self.ax0)
-        self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
-        self.cbar1 = self.figure.colorbar(self.substrate_plot, cax=self.cax1)
-        self.cbar1.ax.tick_params(labelsize=self.fontsize)
-        try:
-            self.cbar1.set_label(self.substrate_combobox.currentText()) 
-        except:
-            pass
+        if not self.nanohub_flag:  # rwh Feb 2025 
+            try:
+                # self.cmap = plt.cm.get_cmap("viridis")
+                self.cmap = cm.get_cmap("viridis")
+            except:
+                self.cmap = colormaps.get_cmap("viridis")
+            self.setupSubstratePlotParameters()
+            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+            
+            ax1_divider = make_axes_locatable(self.ax0)
+            self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
+            self.cbar1 = self.figure.colorbar(self.substrate_plot, cax=self.cax1)
+            self.cbar1.ax.tick_params(labelsize=self.fontsize)
+            try:
+                self.cbar1.set_label(self.substrate_combobox.currentText()) 
+            except:
+                pass
         
         self.time_of_last_substrate_plot_update = time.time()
         self.substrate_plot_time_delay = 0.1
@@ -1326,6 +1327,8 @@ class ICs(QWidget):
         return x - remainder + 0.5 * dx
     
     def update_substrate_plot(self, check_time_delay):
+        if self.nanohub_flag:  # rwh Feb 2025 
+            return
         if (not check_time_delay) or (time.time() > self.time_of_last_substrate_plot_update+self.substrate_plot_time_delay):
             self.substrate_plot.set_data(self.current_substrate_values)
             # self.substrate_plot.set_clim(vmin=np.min(self.current_substrate_values),vmax=np.max(self.current_substrate_values))
@@ -1520,7 +1523,8 @@ class ICs(QWidget):
 
         self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+        if not self.nanohub_flag:  # rwh Feb 2025 
+            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
 
         # self.update_plots()
         self.canvas.update()
@@ -2101,7 +2105,8 @@ class ICs(QWidget):
         self.ax0.cla()
         self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+        if not self.nanohub_flag:  # rwh Feb 2025 
+            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
         self.canvas.update()
         self.canvas.draw()
 
@@ -2553,7 +2558,8 @@ class ICs(QWidget):
             self.setupSubstratePlotParameters()
             self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
             self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+            if not self.nanohub_flag:  # rwh Feb 2025 
+                self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
             self.canvas.update()
             self.canvas.draw()
 
