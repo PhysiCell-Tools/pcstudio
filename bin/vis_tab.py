@@ -1019,7 +1019,10 @@ class Vis(VisBase, QWidget):
             lp = lambda i: plt.plot([],color=cmaps.paint_clist[i], ms=np.sqrt(81), mec="none",
                                     label="Feature {:g}".format(i), ls="", marker="o")[0]
             handles = [lp(self.discrete_variable.index(i)) for i in sorted(list(self.discrete_variable_observed)) if i in self.discrete_variable]
-            self.ax0.legend(handles=handles,labels=names_observed, loc='upper center', bbox_to_anchor=(0.5, -0.15),ncols=4)
+            try:  # rwh Feb 2025 nanohub
+                self.ax0.legend(handles=handles,labels=names_observed, loc='upper center', bbox_to_anchor=(0.5, -0.15),ncols=4)
+            except:
+                pass
 
         else:   # Note: vis_tab_ecm.py seems to avoid any memory leak and with simpler code
             # If it's not there, we create it
