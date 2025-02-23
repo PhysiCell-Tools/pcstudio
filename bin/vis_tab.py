@@ -834,6 +834,7 @@ class Vis(VisBase, QWidget):
         # if self.show_mechanics_grid:
         #     self.plot_mechanics_grid()
 
+        self.cell_scalar_updated = True   # rwh Feb 2025 nanohub insanity
 
         xml_file_root = "output%08d.xml" % frame
         xml_file = os.path.join(self.output_dir, xml_file_root)
