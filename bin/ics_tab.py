@@ -2339,9 +2339,12 @@ class ICs(QWidget):
 
     def displayCurrentCoordinates(self, event):
         current_location = self.getPos(event)
-        self.ax0.set_title(f"(x,y) = ({round(current_location[0])}, {round(current_location[1])})")
-        self.canvas.update()
-        self.canvas.draw()
+        try:  # rwh Feb 2025 nanohub
+            self.ax0.set_title(f"(x,y) = ({round(current_location[0])}, {round(current_location[1])})")
+            self.canvas.update()
+            self.canvas.draw()
+        except:
+            pass
 
     def substrate_combobox_changed_cb(self):
         self.current_substrate_ind = self.substrate_combobox.currentIndex()
