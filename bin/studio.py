@@ -388,7 +388,8 @@ class PhysiCellXMLCreator(QWidget):
             self.rules_tab.fill_gui()
 
             if self.nanohub_flag:
-                self.rules_tab.rules_folder.setText(self.absolute_data_dir)
+                # self.rules_tab.rules_folder.setText(self.absolute_data_dir)
+                self.rules_tab.rules_folder.setText('.')
 
         if self.studio_flag:
             logging.debug(f'studio.py: creating ICs, Run, and Plot tabs')
@@ -408,7 +409,8 @@ class PhysiCellXMLCreator(QWidget):
                 self.config_tab.csv_folder.setEnabled(False)
                 self.config_tab.csv_file.setText("mycells.csv")
 
-                self.ics_tab.csv_folder.setText(self.absolute_data_dir)
+                # self.ics_tab.csv_folder.setText(self.absolute_data_dir)
+                self.ics_tab.csv_folder.setText('.')
                 self.ics_tab.output_file.setText("mycells.csv")
                 self.ics_tab.csv_folder.setEnabled(False)
             else:
