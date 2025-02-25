@@ -2130,7 +2130,8 @@ class ICs(QWidget):
             os.makedirs(dir_name)
             time.sleep(1)
         full_fname = os.path.join(dir_name,self.output_file.text())
-        print("save_cb(): full_fname=",full_fname)
+        logging.debug(f'ics_tab: full_fname (for .csv)= {full_fname}')
+        # print("save_cb(): full_fname=",full_fname)
 
         # if self.nanohub_flag and os.path.isdir('tmpdir'):
         #     # something on NFS causing issues...
@@ -2153,20 +2154,22 @@ class ICs(QWidget):
 
         # Recall: self.csv_array = np.empty([1,4])  # default floats
         if self.use_names.isChecked():
-            print("----- Writing v2 (with cell names) .csv file for cells")
-            print("----- full_fname=",full_fname)
+            # print("----- Writing v2 (with cell names) .csv file for cells")
+            # print("----- full_fname=",full_fname)
             # print("self.csv_array.shape= ",self.csv_array.shape)
             # print(self.csv_array)
             cell_name = list(self.celldef_tab.param_d.keys())
             # print("cell_name=",cell_name)
+            logging.debug(f'ics_tab: before "with open"')
             with open(full_fname, 'w') as f:
                 f.write('x,y,z,type,volume,cycle entry,custom:GFP,custom:sample\n')  # PhysiCell checks for "x" or "X"
                 for idx in range(len(self.csv_array)):
                     ict = int(self.csv_array[idx,3])  # cell type index
                     f.write(f'{self.csv_array[idx,0]},{self.csv_array[idx,1]},{self.csv_array[idx,2]},{cell_name[ict]}\n')
+            logging.debug(f'ics_tab: after "with open"')
         else:
-            print("----- Writing v1 (with cell indices) .csv file for cells")
-            print("----- full_fname=",full_fname)
+            # print("----- Writing v1 (with cell indices) .csv file for cells")
+            # print("----- full_fname=",full_fname)
             np.savetxt(full_fname, self.csv_array, delimiter=',')
 
     def save_substrate_cb(self):
@@ -2186,7 +2189,7 @@ class ICs(QWidget):
             os.makedirs(folder)
             time.sleep(1)
 
-        print("save_substrate_cb(): self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
+        # print("save_substrate_cb(): self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
         
         X = np.tile(self.plot_xx,self.ny).reshape((-1,1))
         Y = np.repeat(self.plot_yy,self.nx).reshape((-1,1))
@@ -2195,12 +2198,12 @@ class ICs(QWidget):
         nonzero_substrates = (C!=0).any(axis=0)
         if ~nonzero_substrates.any():
             # then no substrates are being saved; just disable ics and move on
-            print("---- All substrate ics are 0. Not saving and disabling ics")
+            # print("---- All substrate ics are 0. Not saving and disabling ics")
             self.enable_csv_for_substrate_ics = False
             return
         
-        print("----- Writing .csv file for substrate")
-        print("----- self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
+        # print("----- Writing .csv file for substrate")
+        # print("----- self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
 
         C = C[:,nonzero_substrates] # remove columns of all zeros corresponding to substrates that were not set
         substrates_to_save = [self.substrate_list[i] for i in range(len(self.substrate_list)) if nonzero_substrates[i]]
