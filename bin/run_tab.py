@@ -213,6 +213,12 @@ class RunModel(QWidget):
                     # self.output_dir = '.'
                     self.output_dir = 'tmpdir'
                     self.config_xml_name.setText('config.xml')
+
+                    # rwh Feb 2025 - unsure if want/need PhysiCell_settings.xml in output dir
+                    default_config_file = os.path.join(self.output_dir,"PhysiCell_settings.xml")
+                    abs_default_config_file = os.path.abspath(default_config_file )
+                    print(f"run_tab.py:  also copy to {abs_default_config_file }")
+                    shutil.copy(self.config_file, default_config_file)
                 else:
                     self.output_dir = self.config_tab.folder.text()
                     os.system('rm -rf ' + self.output_dir)

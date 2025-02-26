@@ -688,7 +688,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             self.download_rules_item = self.download_menu.addAction("Download rules.txt", self.download_rules_cb)
             self.download_svg_item = self.download_menu.addAction("Download cell (.svg) data", self.download_svg_cb)
             self.download_mat_item = self.download_menu.addAction("Download full (.mat) data", self.download_full_cb)
-            self.download_graph_item = self.download_menu.addAction("Download cell graph (.txt) data", self.download_graph_cb)
+            # self.download_graph_item = self.download_menu.addAction("Download cell graph (.txt) data", self.download_graph_cb)
             # self.download_menu_item.setEnabled(False)
             # self.download_menu.setEnabled(False)
 
@@ -1420,27 +1420,28 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             except:
                 # self.message("Unable to download config.xml")
                 # print("download_config_cb(): Unable to download config.xml")
-                logging.debug(f'download_config_cb(): Unable to download config.xml')
+                logging.debug(f'download_config_cb(): Unable to exportfile config.xml')
                 self.p = None
         return
 
-    def download_graph_cb(self):
-        if self.nanohub_flag:
-            self.debug_tab.add_msg("download_graph_cb() ------------")
-            try:
-                self.debug_tab.add_msg("   trying to use os.system(exportfile graph.zip)")
-                # os.chdir("tmpdir")
-                # file_str = os.path.join(self.home_dir, 'tmpdir','output*.txt')
-                file_str = os.path.join('tmpdir','output*.txt')
-                # file_str = "*.txt"
-                # print('-------- download_graph): zip up all ',file_str)
-                with zipfile.ZipFile('graph.zip', 'w') as myzip:
-                    for f in glob.glob(file_str):
-                        myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                os.system("exportfile graph.zip")
-                # os.chdir("..")
-            except:
-                self.debug_tab.add_msg("   Error: exception occurred")
+    # def download_graph_cb(self):
+    #     if self.nanohub_flag:
+    #         self.debug_tab.add_msg("download_graph_cb() ------------")
+    #         try:
+    #             self.debug_tab.add_msg("   trying to use os.system(exportfile graph.zip)")
+    #             # os.chdir("tmpdir")
+    #             # file_str = os.path.join(self.home_dir, 'tmpdir','output*.txt')
+    #             file_str = os.path.join('tmpdir','output*.txt')
+    #             # file_str = "*.txt"
+    #             # print('-------- download_graph): zip up all ',file_str)
+    #             with zipfile.ZipFile('graph.zip', 'w') as myzip:
+    #                 for f in glob.glob(file_str):
+    #                     myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+    #             # os.system("exportfile graph.zip")
+    #             self.p.start("exportfile graph.zip")
+    #             # os.chdir("..")
+    #         except:
+    #             self.debug_tab.add_msg("   Error: exception occurred")
 
     def download_rules_cb(self):
         if self.nanohub_flag:
@@ -1454,10 +1455,13 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
                     self.p.start("exportfile tmpdir/rules.csv")
                 else:
-                    self.debug_tab.add_msg(" download_rules_cb():  self.p is NOT None; just return!")
+                    # self.debug_tab.add_msg(" download_rules_cb():  self.p is NOT None; just return!")
+                    logging.debug(f'download_rules_cb(): self.p is not None; Unable to exportfile tmpdir/rules.csv')
+                    pass
             except:
-                self.message("Unable to download rules.csv")
-                print("Unable to download rules.csv")
+                # self.message("Unable to download rules.csv")
+                # print("Unable to download rules.csv")
+                logging.debug(f'download_config_cb(): failed try: Unable to exportfile rules.csv')
                 self.p = None
         return
 
@@ -1473,17 +1477,20 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
                     file_str = os.path.join('tmpdir', '*.svg')
                     # file_str = "*.svg"
-                    print('-------- download_svg_cb(): zip up all ',file_str)
+                    # print('-------- download_svg_cb(): zip up all ',file_str)
                     with zipfile.ZipFile('svg.zip', 'w') as myzip:
                         for f in glob.glob(file_str):
                             myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
                     self.p.start("exportfile svg.zip")
                 else:
                     # self.debug_tab.add_msg(" download_svg_cb():  self.p is NOT None; just return!")
-                    print(" download_svg_cb():  self.p is NOT None; just return!")
+                    # print(" download_svg_cb():  self.p is NOT None; just return!")
+                    logging.debug(f'download_svg_cb(): failed; self.p is not None')
+                    pass
             except:
-                self.message("Unable to download svg.zip")
-                print("Unable to download svg.zip")
+                # self.message("Unable to download svg.zip")
+                # print("Unable to download svg.zip")
+                logging.debug(f'download_svg_cb(): failed try: Unable to exportfile svg.zip')
                 self.p = None
         return
 
@@ -1510,10 +1517,13 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.start("exportfile mcds.zip")
                 else:
                     # self.debug_tab.add_msg(" download_full_cb():  self.p is NOT None; just return!")
-                    print(" download_full_cb():  self.p is NOT None; just return!")
+                    # print(" download_full_cb():  self.p is NOT None; just return!")
+                    logging.debug(f'download_full_cb(): failed; self.p is not None')
+                    pass
             except:
-                self.message("Unable to download mcds.zip")
-                print("Unable to download mcds.zip")
+                # self.message("Unable to download mcds.zip")
+                # print("Unable to download mcds.zip")
+                logging.debug(f'download_full_cb(): failed try: Unable to exportfile mcds.zip')
                 self.p = None
         return
 
@@ -1521,41 +1531,56 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.nanohub_flag:
             self.debug_tab.add_msg("download_csv_cb() ------------")
             self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+
             try:
-                # file_str = os.path.join(self.home_dir,'*.csv')
-                file_str = os.path.join('.','*.csv')
-                logging.debug(f'download_csv_b(): file_str=',file_str)
-                # files_l = glob.glob(file_str)
-                # self.debug_tab.add_msg("   files_l="+files_l)
-                self.debug_tab.add_msg("   next, zip all .csv")
-                logging.debug(f'studio.py: Assume a 3D model')
-                with zipfile.ZipFile('csv.zip', 'w') as myzip:
-                    for f in glob.glob(file_str):
-                    # for f in files_l:
-                        base_fname = os.path.basename(f)
-                        logging.debug(f'download_csv_b(): base_fname=',base_fname)
-                        self.debug_tab.add_msg("   base_fname="+base_fname)
-                        # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                        myzip.write(f, base_fname)   # 2nd arg avoids full filename 
-                self.debug_tab.add_msg("   lastly, os.system(exportfile csv.zip)")
-                os.system("exportfile csv.zip")
+                if self.p is None:  # No process running.
+                    self.p = QProcess()
+                    self.p.readyReadStandardOutput.connect(self.handle_stdout)
+                    self.p.readyReadStandardError.connect(self.handle_stderr)
+                    self.p.stateChanged.connect(self.handle_state)
+                    self.p.finished.connect(self.process_finished)  # Clean up once complete.
+
+                    # file_str = os.path.join(self.home_dir,'*.csv')
+                    file_str = os.path.join('.','*.csv')
+                    logging.debug(f'download_csv_b(): file_str=',file_str)
+                    # files_l = glob.glob(file_str)
+                    # self.debug_tab.add_msg("   files_l="+files_l)
+                    # self.debug_tab.add_msg("   next, zip all .csv")
+                    logging.debug(f'studio.py: Assume a 3D model')
+                    with zipfile.ZipFile('csv.zip', 'w') as myzip:
+                        for f in glob.glob(file_str):
+                        # for f in files_l:
+                            base_fname = os.path.basename(f)
+                            logging.debug(f'download_csv_cb(): base_fname=',base_fname)
+                            # self.debug_tab.add_msg("   base_fname="+base_fname)
+                            # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                            myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+                    self.p.start("exportfile csv.zip")
+                    # self.debug_tab.add_msg("   lastly, os.system(exportfile csv.zip)")
+                    # os.system("exportfile csv.zip")
+                else:
+                    logging.debug(f'download_csv_cb(): failed; self.p is not None')
+                    pass
             except:
-                self.debug_tab.add_msg("   Error: exception occurred")
-                print("   download_csv_cb(): Error: exception occurred")
+                # self.debug_tab.add_msg("   Error: exception occurred")
+                # print("   download_csv_cb(): Error: exception occurred")
+                logging.debug(f'download_csv_cb(): failed try: Unable to exportfile csv.zip')
+                self.p = None
 
     #----------------------------------
     def upload_config_cb(self):
         if self.nanohub_flag:
             cwd = os.getcwd()
-            self.debug_tab.add_msg("upload_config_cb() ------------")
-            self.debug_tab.add_msg("        cwd= "+cwd)
-            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            # self.debug_tab.add_msg("upload_config_cb() ------------")
+            # self.debug_tab.add_msg("        cwd= "+cwd)
+            # self.debug_tab.add_msg("        home_dir= "+self.home_dir)
             # os.chdir("tmpdir")
             try:
-                self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
+                # self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
                 os.system("importfile mymodel.xml")
             except:
-                self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
+                logging.debug(f'upload_config_cb(): failed try: Unable to importfile mymodel.xml')
+                # self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
 
 
     #-----------------------------------------------------------------
