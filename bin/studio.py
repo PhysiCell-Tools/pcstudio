@@ -1547,14 +1547,14 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     # file_str = os.path.join(self.home_dir,'*.csv')
                     logging.debug(f'download_csv_cb(): before file_str()')
                     files_str = os.path.join('.','*.csv')
-                    logging.debug(f'download_csv_b(): files_str={files_str}')
-                    files_l = glob.glob(file_str)
-                    logging.debug(f'download_csv_b(): files_l={files_l}')
+                    # logging.debug(f'download_csv_b(): files_str={files_str}')
+                    # files_l = glob.glob(files_str)
+                    # logging.debug(f'download_csv_b(): files_l={files_l}')
                     # self.debug_tab.add_msg("   files_l="+files_l)
                     # self.debug_tab.add_msg("   next, zip all .csv")
                     with zipfile.ZipFile('csv.zip', 'w') as myzip:
-                        # for f in glob.glob(file_str):
-                        for f in files_l:
+                        for f in glob.glob(file_str):
+                        # for f in files_l:
                             base_fname = os.path.basename(f)
                             logging.debug(f'download_csv_cb(): f={f}')
                             logging.debug(f'download_csv_cb(): base_fname={base_fname}')
