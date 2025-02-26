@@ -12,6 +12,7 @@ import sys
 import os
 import time
 import logging
+import shutil
 from pathlib import Path
 from pretty_print_xml import pretty_print
 from PyQt5 import QtCore, QtGui
