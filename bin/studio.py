@@ -32,7 +32,7 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPalette, QColor, QIcon, QFont
 # from PyQt5.QtCore import Qt
-from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QRunnable, QThreadPool
+from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QRunnable, QThreadPool, QProcess
 from PyQt5.QtWidgets import QStyleFactory
 
 from pretty_print_xml import pretty_print
