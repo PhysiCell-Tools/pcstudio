@@ -1394,20 +1394,24 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.nanohub_flag:
             try:
                 if self.p is None:  # No process running.
+                    print("download_config_cb(): in self.p is None")
                     self.debug_tab.add_msg("   self.p is None; create QProcess()")
                     self.debug_tab.add_msg("  cwd= " + os.getcwd())
                     self.debug_tab.add_msg("doing: exportfile config.xml")
                     self.p = QProcess()
+                    print("download_config_cb(): past QProcess")
                     self.p.readyReadStandardOutput.connect(self.handle_stdout)
                     self.p.readyReadStandardError.connect(self.handle_stderr)
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
+                    print("download_config_cb(): before exportfile")
                     self.p.start("exportfile tmpdir/config.xml")
+                    print("download_config_cb(): after exportfile")
                 else:
                     self.debug_tab.add_msg("   self.p is NOT None; just return!")
             except:
                 self.message("Unable to download config.xml")
-                print("Unable to download config.xml")
+                print("download_config_cb(): Unable to download config.xml")
                 self.p = None
         return
 
