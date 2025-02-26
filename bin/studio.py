@@ -22,6 +22,7 @@ import argparse
 import logging
 import traceback
 import shutil # for possible copy of file
+import zipfile
 import glob
 from pathlib import Path
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
@@ -1545,8 +1546,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
                     # file_str = os.path.join(self.home_dir,'*.csv')
                     logging.debug(f'download_csv_cb(): before file_str()')
-                    file_str = os.path.join('.','*.csv')
-                    # logging.debug(f'download_csv_cb(): after file_str()')
+                    files_str = os.path.join('.','*.csv')
+                    logging.debug(f'download_csv_b(): files_str={files_str}')
                     files_l = glob.glob(file_str)
                     logging.debug(f'download_csv_b(): files_l={files_l}')
                     # self.debug_tab.add_msg("   files_l="+files_l)
@@ -1555,11 +1556,12 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                         # for f in glob.glob(file_str):
                         for f in files_l:
                             base_fname = os.path.basename(f)
+                            logging.debug(f'download_csv_cb(): f={f}')
                             logging.debug(f'download_csv_cb(): base_fname={base_fname}')
                             # self.debug_tab.add_msg("   base_fname="+base_fname)
                             # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                            # myzip.write(f, base_fname)   # 2nd arg avoids full filename 
-                            myzip.write(base_fname)   # 2nd arg avoids full filename 
+                            myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+                            # myzip.write(base_fname)   # 2nd arg avoids full filename 
                     self.p.start("exportfile csv.zip")
                     # self.debug_tab.add_msg("   lastly, os.system(exportfile csv.zip)")
                     # os.system("exportfile csv.zip")
