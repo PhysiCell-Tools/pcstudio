@@ -1529,8 +1529,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
     def download_csv_cb(self):
         if self.nanohub_flag:
-            self.debug_tab.add_msg("download_csv_cb() ------------")
-            self.debug_tab.add_msg("        home_dir= "+self.home_dir)
+            # self.debug_tab.add_msg("download_csv_cb() ------------")
+            # self.debug_tab.add_msg("        home_dir= "+self.home_dir)
 
             try:
                 if self.p is None:  # No process running.
@@ -1599,7 +1599,8 @@ def main():
     is_movable_flag = False
     pytest_flag = False
     biwt_flag = False
-    debug_flag = True
+    # debug_flag = True
+    debug_flag = False
     try:
         parser = argparse.ArgumentParser(description='PhysiCell Studio.')
 
