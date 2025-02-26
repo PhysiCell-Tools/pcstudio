@@ -1476,13 +1476,18 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
-                    file_str = os.path.join('tmpdir', '*.svg')
+                    files_str = os.path.join('tmpdir', '*.svg')
+                    logging.debug(f'download_svg_cb(): files_str={files_str}')
                     # file_str = "*.svg"
                     # print('-------- download_svg_cb(): zip up all ',file_str)
                     with zipfile.ZipFile('svg.zip', 'w') as myzip:
-                        for f in glob.glob(file_str):
+                        for f in glob.glob(files_str):
+                        # for f in files_l:
+                            base_fname = os.path.basename(f)
                             # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                            myzip.write(os.path.basename(f))   # 2nd arg avoids full filename 
+                            # myzip.write(os.path.basename(f))   # 2nd arg avoids full filename 
+                            myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+                            # myzip.write(base_fname)   # 2nd arg avoids full filename 
                     self.p.start("exportfile svg.zip")
                 else:
                     # self.debug_tab.add_msg(" download_svg_cb():  self.p is NOT None; just return!")
