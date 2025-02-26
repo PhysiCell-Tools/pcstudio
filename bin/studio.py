@@ -796,7 +796,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         try:
             self.tree = ET.parse(self.config_file)
         except:
-            self.show_error_message(f"Error: unable to parse XML file {self.config_file}")
+            self.show_error_message(f'Error: unable to parse XML file {self.config_file}')
             return
 
         print(f'studio: show_sample_model(): self.tree = {self.tree}')
@@ -1534,24 +1534,27 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
             try:
                 if self.p is None:  # No process running.
+                    logging.debug(f'download_csv_cb(): before QProcess()')
                     self.p = QProcess()
+                    logging.debug(f'download_csv_cb(): after QProcess()')
                     self.p.readyReadStandardOutput.connect(self.handle_stdout)
                     self.p.readyReadStandardError.connect(self.handle_stderr)
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
                     # file_str = os.path.join(self.home_dir,'*.csv')
+                    logging.debug(f'download_csv_cb(): before file_str()')
                     file_str = os.path.join('.','*.csv')
-                    logging.debug(f'download_csv_b(): file_str=',file_str)
+                    logging.debug(f'download_csv_cb(): after file_str()')
+                    logging.debug(f'download_csv_b(): file_str={file_str}')
                     # files_l = glob.glob(file_str)
                     # self.debug_tab.add_msg("   files_l="+files_l)
                     # self.debug_tab.add_msg("   next, zip all .csv")
-                    logging.debug(f'studio.py: Assume a 3D model')
                     with zipfile.ZipFile('csv.zip', 'w') as myzip:
                         for f in glob.glob(file_str):
                         # for f in files_l:
                             base_fname = os.path.basename(f)
-                            logging.debug(f'download_csv_cb(): base_fname=',base_fname)
+                            logging.debug(f'download_csv_cb(): base_fname={base_fname}')
                             # self.debug_tab.add_msg("   base_fname="+base_fname)
                             # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
                             myzip.write(f, base_fname)   # 2nd arg avoids full filename 
