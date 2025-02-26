@@ -1402,7 +1402,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.readyReadStandardError.connect(self.handle_stderr)
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
-                    self.p.start("exportfile config.xml")
+                    self.p.start("exportfile tmpdir/config.xml")
                 else:
                     self.debug_tab.add_msg("   self.p is NOT None; just return!")
             except:
@@ -1417,7 +1417,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             try:
                 self.debug_tab.add_msg("   trying to use os.system(exportfile graph.zip)")
                 # os.chdir("tmpdir")
-                file_str = os.path.join(self.home_dir, 'tmpdir','output*.txt')
+                # file_str = os.path.join(self.home_dir, 'tmpdir','output*.txt')
+                file_str = os.path.join('tmpdir','output*.txt')
                 # file_str = "*.txt"
                 # print('-------- download_graph): zip up all ',file_str)
                 with zipfile.ZipFile('graph.zip', 'w') as myzip:
@@ -1438,7 +1439,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
-                    self.p.start("exportfile rules.csv")
+                    self.p.start("exportfile tmpdir/rules.csv")
                 else:
                     self.debug_tab.add_msg(" download_rules_cb():  self.p is NOT None; just return!")
             except:
@@ -1457,8 +1458,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
-                    # file_str = os.path.join(self.output_dir, '*.svg')
-                    file_str = "*.svg"
+                    file_str = os.path.join('tmpdir', '*.svg')
+                    # file_str = "*.svg"
                     print('-------- download_svg_cb(): zip up all ',file_str)
                     with zipfile.ZipFile('svg.zip', 'w') as myzip:
                         for f in glob.glob(file_str):
@@ -1483,10 +1484,10 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
-                    # file_xml = os.path.join(self.output_dir, '*.xml')
-                    # file_mat = os.path.join(self.output_dir, '*.mat')
-                    file_xml = '*.xml'
-                    file_mat = '*.mat'
+                    file_xml = os.path.join('tmpdir', '*.xml')
+                    file_mat = os.path.join('tmpdir', '*.mat')
+                    # file_xml = '*.xml'
+                    # file_mat = '*.mat'
                     print('-------- download_full_cb(): zip up all .xml and .mat')
                     with zipfile.ZipFile('mcds.zip', 'w') as myzip:
                         for f in glob.glob(file_xml):
@@ -1508,7 +1509,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             self.debug_tab.add_msg("download_csv_cb() ------------")
             self.debug_tab.add_msg("        home_dir= "+self.home_dir)
             try:
-                file_str = os.path.join(self.home_dir,'*.csv')
+                # file_str = os.path.join(self.home_dir,'*.csv')
+                file_str = os.path.join('.','*.csv')
                 files_l = glob.glob(file_str)
                 # self.debug_tab.add_msg("   files_l="+files_l)
                 self.debug_tab.add_msg("   next, zip all .csv")
