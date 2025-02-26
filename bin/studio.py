@@ -1480,7 +1480,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     # print('-------- download_svg_cb(): zip up all ',file_str)
                     with zipfile.ZipFile('svg.zip', 'w') as myzip:
                         for f in glob.glob(file_str):
-                            myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                            # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
+                            myzip.write(os.path.basename(f))   # 2nd arg avoids full filename 
                     self.p.start("exportfile svg.zip")
                 else:
                     # self.debug_tab.add_msg(" download_svg_cb():  self.p is NOT None; just return!")
@@ -1557,7 +1558,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                             logging.debug(f'download_csv_cb(): base_fname={base_fname}')
                             # self.debug_tab.add_msg("   base_fname="+base_fname)
                             # myzip.write(f, os.path.basename(f))   # 2nd arg avoids full filename 
-                            myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+                            # myzip.write(f, base_fname)   # 2nd arg avoids full filename 
+                            myzip.write(base_fname)   # 2nd arg avoids full filename 
                     self.p.start("exportfile csv.zip")
                     # self.debug_tab.add_msg("   lastly, os.system(exportfile csv.zip)")
                     # os.system("exportfile csv.zip")
