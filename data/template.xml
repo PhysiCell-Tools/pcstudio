@@ -245,15 +245,15 @@
     </cell_definitions>
 
     <initial_conditions>
-        <cell_positions type="csv" enabled="false">
-            <folder>./config</folder>
-            <filename>cells.csv</filename>
+        <cell_positions type="csv" enabled="true">
+            <folder>.</folder>
+            <filename>mycells.csv</filename>
         </cell_positions>
     </initial_conditions>
 
     <cell_rules>
         <rulesets>
-            <ruleset protocol="CBHG" version="3.0" format="csv" enabled="false">
+            <ruleset protocol="CBHG" version="3.0" format="csv" enabled="true">
                 <folder>.</folder>
                 <filename>rules.csv</filename>
             </ruleset>
