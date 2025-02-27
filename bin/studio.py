@@ -148,7 +148,8 @@ class PhysiCellXMLCreator(QWidget):
 
         if self.nanohub_flag:
             try:
-                tool_dir = os.environ['TOOLPATH']
+                tool_dir = os.environ['TOOLPATH']    
+                # session_dir = os.environ['SESSIONDIR']   # test in the Workspace
                 dataDirectory = os.path.join(tool_dir,'data')
             except:
                 binDirectory = os.path.dirname(os.path.abspath(__file__))
@@ -156,6 +157,12 @@ class PhysiCellXMLCreator(QWidget):
                 print("-------- dataDirectory (relative) =",dataDirectory)
             self.absolute_data_dir = os.path.abspath(dataDirectory)
             print("-------- absolute_data_dir =",self.absolute_data_dir)
+
+            self.home_dir = os.getcwd()
+            cells_file0 = os.path.join(tool_dir,'data',"mycells.csv")
+            cells_file1 = os.path.join(self.home_dir,"mycells.csv")
+            shutil.copy(cells_file0, cells_file1)
+            print(f'-------- studio.py: copying {cells_file0} to {cells_file1}')
 
             # NOTE: if your C++ needs to also have an absolute path to data dir, do so via an env var
             # os.environ['KIDNEY_DATA_PATH'] = self.absolute_data_dir
@@ -193,7 +200,7 @@ class PhysiCellXMLCreator(QWidget):
                     print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
                     sys.exit(1)
 
-# rwh: Sep 2024
+        # rwh: Sep 2024
         self.studio_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
         if self.nanohub_flag:
             # self.studio_data_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
