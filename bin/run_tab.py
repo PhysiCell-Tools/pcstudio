@@ -180,14 +180,14 @@ class RunModel(QWidget):
                 # make sure we are where we started (app's root dir)
                 # logging.debug(f'\n------>>>> doing os.chdir to {self.current_dir}')
                 os.chdir(self.current_dir)  # session root dir on nanoHUB (not /tmpdir)
-                self.debug_tab.add_msg("run_tab: chdir to (current_dir) "+self.current_dir)
+                # self.debug_tab.add_msg("run_tab: chdir to (current_dir) "+self.current_dir)
                 # remove any previous data
                 # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
                 if self.nanohub_flag:
                     logging.debug(f'====run_model_cb():  self.home_dir={self.home_dir}' )
                     # print("run_tab: self.home_dir= ",self.home_dir)
                     os.chdir(self.home_dir)  # session root dir on nanoHUB (not /tmpdir)
-                    self.debug_tab.add_msg("run_tab: chdir to (home_dir) "+self.home_dir)
+                    # self.debug_tab.add_msg("run_tab: chdir to (home_dir) "+self.home_dir)
                     os.system('rm -rf tmpdir*')
                     time.sleep(2)
                     if os.path.isdir('tmpdir'):
@@ -196,14 +196,15 @@ class RunModel(QWidget):
                             tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
                             shutil.move('tmpdir', tname)
                         except:
-                            self.debug_tab.add_msg("run_tab: NFS exception; unable to clean tmpdir")
+                            # self.debug_tab.add_msg("run_tab: NFS exception; unable to clean tmpdir")
+                            logging.debug(f'====run_model_cb():  self.home_dir={self.home_dir}' )
                     try:
-                        self.debug_tab.add_msg("run_tab: doing os.makedirs(tmpdir)")
-                        logging.debug(f'====run_model_cb():  doing os.makedirs("tmpdir")')
+                        # self.debug_tab.add_msg("run_tab: doing os.makedirs(tmpdir)")
+                        logging.debug(f'====run_model_cb():  doing os.makedirs(tmpdir)')
                         os.makedirs('tmpdir')
                     except:
                         logging.debug(f'====run_model_cb():  exception doing os.makedirs("tmpdir")')
-                        self.debug_tab.add_msg("run_tab: exception with os.makedirs(tmpdir)")
+                        # self.debug_tab.add_msg("run_tab: exception with os.makedirs(tmpdir)")
 
                     # write the default config file to tmpdir
                     # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
@@ -237,7 +238,7 @@ class RunModel(QWidget):
 
                 if not self.update_xml_from_gui():
                     # self.run_button.setEnabled(True)
-                    self.debug_tab.add_msg("run_tab: Oops. update_xml_from_gui() returned False. Return")
+                    # self.debug_tab.add_msg("run_tab: Oops. update_xml_from_gui() returned False. Return")
                     self.enable_run(True)
                     return
 
@@ -258,7 +259,7 @@ class RunModel(QWidget):
 
                     logging.debug(f'run_tab.py:  writing config to {str(new_config_file)}')
                     self.tree.write(new_config_file)  # saves modified XML to config.xml (NOT tmpdir/config.xml)
-                    self.debug_tab.add_msg("run_tab: writing config to "+str(new_config_file))
+                    # self.debug_tab.add_msg("run_tab: writing config to "+str(new_config_file))
 
                     # save current table of rules in /tmpdir (where we are now)
                     # self.debug_tab.add_msg("run_tab: setting rules dir: "+tdir)
@@ -320,10 +321,10 @@ class RunModel(QWidget):
                 if self.nanohub_flag:   # rwh 2/19/25
                 # if False and self.nanohub_flag:   # rwh 2/19/25
                     self.p.start("submit",["--local",exec_str,xml_str])
-                    self.debug_tab.add_msg("run_tab: submit --local "+exec_str + " "+xml_str)
+                    # self.debug_tab.add_msg("run_tab: submit --local "+exec_str + " "+xml_str)
                     cwd = os.getcwd()
                     logging.debug(f'run_tab.py:  cwd when doing submit is {cwd}')
-                    self.debug_tab.add_msg("                cwd= " + cwd)
+                    # self.debug_tab.add_msg("                cwd= " + cwd)
                     # self.debug_tab.add_msg("self.p = "+str(self.p))
                 else:
                     # logging.debug(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
@@ -346,9 +347,9 @@ class RunModel(QWidget):
 
     def cancel_model_cb(self):
         # logging.debug(f'===========  cancel_model_cb():  ============')
-        self.debug_tab.add_msg("run_tab: cancel_model_cb() -------")
+        # self.debug_tab.add_msg("run_tab: cancel_model_cb() -------")
         if self.p:  # process running.
-            self.debug_tab.add_msg("   cancel_model_cb(): self.p is not None. Try to kill it.")
+            # self.debug_tab.add_msg("   cancel_model_cb(): self.p is not None. Try to kill it.")
             try:
                 # self.p.kill()
                 # time.sleep(2)
@@ -357,20 +358,24 @@ class RunModel(QWidget):
                 time.sleep(1)
                 # self.run_button.setEnabled(True)
             except:
-                self.debug_tab.add_msg("   cancel_model_cb(): exception trying to terminate")
+                # self.debug_tab.add_msg("   cancel_model_cb(): exception trying to terminate")
+                pass
 
             self.enable_run(True)
         else:
-            self.debug_tab.add_msg("   cancel_model_cb(): self.p is None")
+            # self.debug_tab.add_msg("   cancel_model_cb(): self.p is None")
+            pass
 
     def handle_stderr(self):
         try:
-            self.debug_tab.add_msg("handle_stderr(): ")
+            # self.debug_tab.add_msg("handle_stderr(): ")
             data = self.p.readAllStandardError()
             stderr = bytes(data).decode("utf8")
             self.message(stderr)
         except:
-            self.debug_tab.add_msg("handle_stderr(): exception")
+            # self.debug_tab.add_msg("handle_stderr(): exception")
+            logging.debug(f'run_tab:  handle_stderr(): exception')
+            pass
 
     def handle_stdout(self):
         try:
@@ -379,7 +384,8 @@ class RunModel(QWidget):
             stdout = bytes(data).decode("utf8")
             self.message(stdout)
         except:
-            self.debug_tab.add_msg("handle_stdout(): exception")
+            # self.debug_tab.add_msg("handle_stdout(): exception")
+            logging.debug(f'run_tab:  handle_stdout(): exception')
 
 
     def handle_state(self, state):
@@ -390,11 +396,12 @@ class RunModel(QWidget):
                 QProcess.Running: 'Running',
             }
             state_name = states[state]
-            self.debug_tab.add_msg("handle_state(): state_name= "+state_name)
+            # self.debug_tab.add_msg("handle_state(): state_name= "+state_name)
             self.message(f"State changed: {state_name}")
         # self.message(f"Starting in a few secs...")   # only for "Starting"
         except:
-            self.debug_tab.add_msg("handle_state(): exception")
+            # self.debug_tab.add_msg("handle_state(): exception")
+            logging.debug(f'run_tab:  handle_state(): exception')
 
     def process_finished(self):
         self.message("Process finished.")
