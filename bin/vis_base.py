@@ -1363,7 +1363,7 @@ class VisBase():
             self.population_plot[self.discrete_scalar].ax0.set_xlabel('time (mins)')
             self.population_plot[self.discrete_scalar].ax0.set_ylabel('# of cells')
             self.population_plot[self.discrete_scalar].ax0.set_title("cell_type", fontsize=10)
-            self.population_plot[self.discrete_scalar].ax0.legend(loc='center right', prop={'size': 8})
+            self.population_plot[self.discrete_scalar].ax0.legend(loc='center left', prop={'size': 8})
             self.population_plot[self.discrete_scalar].canvas.update()
             self.population_plot[self.discrete_scalar].canvas.draw()
             # self.population_plot[self.discrete_scalar].ax0.legend(loc='center right', prop={'size': 8})
@@ -1438,7 +1438,7 @@ class VisBase():
                 self.population_plot[self.discrete_scalar].ax0.set_title(self.discrete_scalar + " (filtered by cell type)", fontsize=10)
             else:
                 self.population_plot[self.discrete_scalar].ax0.set_title(self.discrete_scalar, fontsize=10)
-            self.population_plot[self.discrete_scalar].ax0.legend(loc='center right', prop={'size': 8})
+            self.population_plot[self.discrete_scalar].ax0.legend(loc='center left', prop={'size': 8})
             self.population_plot[self.discrete_scalar].canvas.update()
             try:  # rwh Feb 2025 nanoHUB
                 self.population_plot[self.discrete_scalar].canvas.draw()
