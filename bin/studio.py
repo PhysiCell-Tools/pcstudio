@@ -1589,6 +1589,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
     def upload_config_cb(self):
         if self.nanohub_flag:
             cwd = os.getcwd()
+            logging.debug(f'upload_config_cb(): cwd={cwd}')
             # self.debug_tab.add_msg("upload_config_cb() ------------")
             # self.debug_tab.add_msg("        cwd= "+cwd)
             # self.debug_tab.add_msg("        home_dir= "+self.home_dir)
@@ -1596,6 +1597,10 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             try:
                 # self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
                 os.system("importfile mymodel.xml")
+
+                shutil.copy("mymodel.xml", self.absolute_data_dir)
+                logging.debug(f'upload_config_cb(): copying mymodel.xml to ={self.absolute_data_dir}')
+                self.load_model("mymodel")
             except:
                 logging.debug(f'upload_config_cb(): failed try: Unable to importfile mymodel.xml')
                 # self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
