@@ -8,7 +8,7 @@ Dr. Paul Macklin (macklinp@iu.edu)
 import sys
 import os
 import csv
-# import logging
+import logging
 
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from pathlib import Path
@@ -339,19 +339,25 @@ class Rules(QWidget):
         top_right_half_vbox.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
-        hlayout.addStretch(1)
+        # hlayout.addStretch(1)
 
-        if not self.nanohub_flag:
+        if self.nanohub_flag:
+            self.import_rules_button = QPushButton("Import myrules.csv")
+            # self.import_rules_button.setFixedWidth(100)
+            self.import_rules_button.setStyleSheet("background-color: yellow")
+            self.import_rules_button.clicked.connect(self.import_rules_nanohub_cb)
+
+        else:
             self.import_rules_button = QPushButton("Import")
             self.import_rules_button.setFixedWidth(100)
             self.import_rules_button.setStyleSheet("background-color: yellow")
             self.import_rules_button.clicked.connect(self.import_rules_cb)
-            hlayout.addWidget(self.import_rules_button) 
 
             self.import_rules_question_label = HoverQuestion("Open a file dialog to select a new rules file to import.")
             self.import_rules_question_label.show_icon()
             hlayout.addWidget(self.import_rules_question_label)
         
+        hlayout.addWidget(self.import_rules_button) 
         hlayout.addStretch(1)
 
         top_right_half_vbox.addLayout(hlayout)
@@ -1692,6 +1698,24 @@ class Rules(QWidget):
 
         else:
             print("import_rules_cb():  full_path_model_name is NOT valid")
+
+    #-----------------------------------------------------------
+    def import_rules_nanohub_cb(self):
+
+        cwd = os.getcwd()
+        logging.debug(f'rules_tab: upload myrules.csv: cwd={cwd}')
+        try:
+            os.system("importfile myrules.csv")
+            shutil.copy("myrules.csv", self.absolute_data_dir)
+            logging.debug(f'rules_tab: copying myrules.csv to ={self.absolute_data_dir}')
+        except:
+            logging.debug(f'rules_tab: unable to importfile myrules.csv')
+
+        self.fill_rules("myrules.csv")
+
+        # else:
+        #     print("import_rules_nanohub_cb():  full_path_model_name is NOT valid")
+        #     logging.debug(f'rules_tab: unable to importfile myrules.csv')
 
     #-----------------------------------------------------------
     # load/append more
