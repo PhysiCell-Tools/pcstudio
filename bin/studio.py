@@ -1601,7 +1601,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 # self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
                 os.system("importfile mymodel.xml")
 
-                logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.absolute_data_dir}')
+                logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.absolute_data_dir}')   # 
                 shutil.copy("mymodel.xml", self.absolute_data_dir)
                 logging.debug(f'upload_config_cb(): post-copy mymodel.xml to ={self.absolute_data_dir}')
 
