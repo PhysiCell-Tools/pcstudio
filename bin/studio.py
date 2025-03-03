@@ -1178,6 +1178,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             self.debug_tab.add_msg(msg)
 
     def load_model(self,name):
+        logging.debug(f'studio.py: ---- entered load_model()')
         if self.studio_flag:
             self.run_tab.cancel_model_cb()  # if a sim is already running, cancel it
             self.vis_tab.physiboss_vis_checkbox = None    # default: assume a non-boolean intracellular model
@@ -1186,7 +1187,9 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 self.vis_tab.physiboss_vis_checkbox.setChecked(False)
 
 
+        logging.debug(f'  load_model():  pre- os.chdir, self.current_dir={self.current_dir}')
         os.chdir(self.current_dir)  # just in case we were in /tmpdir (and it crashed/failed, leaving us there)
+        logging.debug(f'  load_model():  post- os.chdir, self.current_dir={self.current_dir}')
 
         self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
         logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
@@ -1598,9 +1601,14 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 # self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
                 os.system("importfile mymodel.xml")
 
+                logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.absolute_data_dir}')
                 shutil.copy("mymodel.xml", self.absolute_data_dir)
-                logging.debug(f'upload_config_cb(): copying mymodel.xml to ={self.absolute_data_dir}')
+                logging.debug(f'upload_config_cb(): post-copy mymodel.xml to ={self.absolute_data_dir}')
+
+                logging.debug(f'upload_config_cb(): pre- self.load_model')
                 self.load_model("mymodel")
+                logging.debug(f'upload_config_cb(): post- self.load_model')
+
             except:
                 logging.debug(f'upload_config_cb(): failed try: Unable to importfile mymodel.xml')
                 # self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
