@@ -324,6 +324,7 @@ class RunModel(QWidget):
                     # self.debug_tab.add_msg("run_tab: submit --local "+exec_str + " "+xml_str)
                     cwd = os.getcwd()
                     logging.debug(f'run_tab.py:  cwd when doing submit is {cwd}')
+                    logging.debug(f'run_tab.py:     and xml_str = {xml_str}')
                     # self.debug_tab.add_msg("                cwd= " + cwd)
                     # self.debug_tab.add_msg("self.p = "+str(self.p))
                 else:

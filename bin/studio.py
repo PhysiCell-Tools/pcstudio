@@ -157,6 +157,7 @@ class PhysiCellXMLCreator(QWidget):
                 print("-------- dataDirectory (relative) =",dataDirectory)
             self.absolute_data_dir = os.path.abspath(dataDirectory)
             print("-------- absolute_data_dir =",self.absolute_data_dir)
+            logging.debug(f'---studio.py: self.absolute_data_dir={self.absolute_data_dir}\n')
 
             self.home_dir = os.getcwd()
             cells_file0 = os.path.join(tool_dir,'data',"mycells.csv")
