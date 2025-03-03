@@ -8,7 +8,7 @@ Dr. Paul Macklin (macklinp@iu.edu)
 import sys
 import os
 import csv
-# import logging
+import logging
 
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from pathlib import Path
