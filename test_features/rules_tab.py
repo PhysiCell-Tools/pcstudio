@@ -341,10 +341,10 @@ class Rules(QWidget):
         hlayout = QHBoxLayout()
         hlayout.addStretch(1)
 
-        self.import_rules_button = QPushButton("Import")
-        self.import_rules_button.setFixedWidth(100)
-        self.import_rules_button.setStyleSheet("background-color: yellow")
         if self.nanohub_flag:
+            self.import_rules_button = QPushButton("Import myrules.csv")
+            # self.import_rules_button.setFixedWidth(100)
+            self.import_rules_button.setStyleSheet("background-color: yellow")
             cwd = os.getcwd()
             logging.debug(f'rules_tab: upload myrules.csv: cwd={cwd}')
             try:
@@ -356,6 +356,9 @@ class Rules(QWidget):
                 logging.debug(f'rules_tab: unable to importfile myrules.csv')
 
         else:
+            self.import_rules_button = QPushButton("Import")
+            self.import_rules_button.setFixedWidth(100)
+            self.import_rules_button.setStyleSheet("background-color: yellow")
             self.import_rules_button.clicked.connect(self.import_rules_cb)
             hlayout.addWidget(self.import_rules_button) 
 
