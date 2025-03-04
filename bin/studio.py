@@ -669,7 +669,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # model_menu.addAction("biorobots", self.biorobots_cb)
             # model_menu.addAction("tumor_immune", self.tumor_immune_cb)
 
-            file_menu.addAction("Open (upload) mymodel.xml", self.upload_config_cb))
+            file_menu.addAction("Open (upload) mymodel.xml", self.upload_config_cb)
 
             self.download_menu = file_menu.addMenu('Download')
             self.download_menu.setEnabled(False)
