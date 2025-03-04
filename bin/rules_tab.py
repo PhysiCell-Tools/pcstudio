@@ -1052,6 +1052,7 @@ class Rules(QWidget):
 
     #-----------------------------------------------------------
     def fill_rules(self, full_rules_fname):
+        logging.debug(f'fill_rules: full_rules_fname= {full_rules_fname}')
         # print("\n---------------- fill_rules():  full_rules_fname=",full_rules_fname)
         self.clear_rules()
 

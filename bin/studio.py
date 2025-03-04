@@ -1187,6 +1187,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         else:
             self.debug_tab.add_msg(msg)
 
+    # ------- nanoHUB related function!
     def load_model(self,name):
         logging.debug(f'studio.py: ---- entered load_model()')
         if self.studio_flag:
@@ -1197,16 +1198,20 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 self.vis_tab.physiboss_vis_checkbox.setChecked(False)
 
 
-        logging.debug(f'  load_model():  pre- os.chdir, self.current_dir={self.current_dir}')
-        os.chdir(self.current_dir)  # just in case we were in /tmpdir (and it crashed/failed, leaving us there)
-        logging.debug(f'  load_model():  post- os.chdir, self.current_dir={self.current_dir}')
+        # logging.debug(f'  load_model():  pre- os.chdir, self.current_dir={self.current_dir}')
+        # os.chdir(self.current_dir)  # just in case we were in /tmpdir (and it crashed/failed, leaving us there)
+        # logging.debug(f'  load_model():  post- os.chdir, self.current_dir={self.current_dir}')
 
-        self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
+        # self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        # self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
+
+        self.current_xml_file = os.path.join(self.nanohub_session_dir, name + ".xml")
+
         logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
         print(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
 
-        logging.debug(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
-        print(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
+        # logging.debug(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
+        # print(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
 
         # if self.xml_root.find(".//cell_definitions//cell_rules"):
         # self.current_save_file = current_xml_file
