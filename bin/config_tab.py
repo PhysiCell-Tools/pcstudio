@@ -768,7 +768,10 @@ class Config(StudioTab):
         
         self.num_threads.setText(self.xml_root.find(".//omp_num_threads").text)
 
-        self.folder.setText(self.xml_root.find(".//save//folder").text)
+        if self.nanohub_flag:   # rwh 2025
+            self.folder.setText("tmpdir")
+        else:
+            self.folder.setText(self.xml_root.find(".//save//folder").text)
         
         self.svg_interval.setText(self.xml_root.find(".//SVG//interval").text)
         # NOTE: do this *after* filling the mcds_interval, directly above, due to the callback/constraints on them??
