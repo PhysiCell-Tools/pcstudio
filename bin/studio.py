@@ -683,8 +683,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # self.download_menu_item.setEnabled(False)
             # self.download_menu.setEnabled(False)
 
-            self.upload_menu = file_menu.addMenu('Upload')
-            self.upload_config_item = self.upload_menu.addAction("Upload mymodel.xml", self.upload_config_cb)
+            # self.upload_menu = file_menu.addMenu('Upload')
+            # self.upload_config_item = self.upload_menu.addAction("Upload mymodel.xml", self.upload_config_cb)
 
         #--------------
         else:
