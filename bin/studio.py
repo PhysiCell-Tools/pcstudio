@@ -146,6 +146,7 @@ class PhysiCellXMLCreator(QWidget):
             if "home/nanohub" in os.environ['HOME']:
                 self.nanohub_flag = True
 
+        self.nanohub_session_dir = '.'
         if self.nanohub_flag:
             try:
                 tool_dir = os.environ['TOOLPATH']    
@@ -162,6 +163,7 @@ class PhysiCellXMLCreator(QWidget):
             self.absolute_data_dir = os.path.abspath(dataDirectory)
             print("-------- absolute_data_dir =",self.absolute_data_dir)
             logging.debug(f'---studio.py: self.absolute_data_dir={self.absolute_data_dir}\n')
+            logging.debug(f'---studio.py: self.nanohub_session_dir ={self.nanohub_session_dir}\n')
 
             self.home_dir = os.getcwd()
             cells_file0 = os.path.join(tool_dir,'data',"mycells.csv")
