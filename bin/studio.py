@@ -149,12 +149,16 @@ class PhysiCellXMLCreator(QWidget):
         if self.nanohub_flag:
             try:
                 tool_dir = os.environ['TOOLPATH']    
-                # session_dir = os.environ['SESSIONDIR']   # test in the Workspace
+                self.absolute_data_dir = os.path.abspath(dataDirectory)
                 dataDirectory = os.path.join(tool_dir,'data')
+
+                self.nanohub_session_dir = os.environ.get('SESSIONDIR')
             except:
+                logging.debug(f'---studio.py: exception setting tool or session_dir')
                 binDirectory = os.path.dirname(os.path.abspath(__file__))
                 dataDirectory = os.path.join(binDirectory,'..','data')
                 print("-------- dataDirectory (relative) =",dataDirectory)
+
             self.absolute_data_dir = os.path.abspath(dataDirectory)
             print("-------- absolute_data_dir =",self.absolute_data_dir)
             logging.debug(f'---studio.py: self.absolute_data_dir={self.absolute_data_dir}\n')
@@ -1607,9 +1611,11 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 # self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
                 os.system("importfile mymodel.xml")
 
-                logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.absolute_data_dir}')   # 
-                shutil.copy("mymodel.xml", self.absolute_data_dir)
-                logging.debug(f'upload_config_cb(): post-copy mymodel.xml to ={self.absolute_data_dir}')
+                # logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.absolute_data_dir}')   # 
+                logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.nanohub_session_dir}')   # 
+                # shutil.copy("mymodel.xml", self.absolute_data_dir)
+                shutil.copy("mymodel.xml", self.nanohub_session_dir)
+                logging.debug(f'upload_config_cb(): post-copy mymodel.xml to ={self.nanohub_session_dir}')
 
                 logging.debug(f'upload_config_cb(): pre- self.load_model')
                 self.load_model("mymodel")
