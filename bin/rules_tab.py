@@ -1705,9 +1705,11 @@ class Rules(QWidget):
         cwd = os.getcwd()
         logging.debug(f'rules_tab: upload myrules.csv: cwd={cwd}')
         try:
+            logging.debug(f'rules_tab: pre- importfile myrules.csv')
             os.system("importfile myrules.csv")
-            shutil.copy("myrules.csv", self.absolute_data_dir)
-            logging.debug(f'rules_tab: copying myrules.csv to ={self.absolute_data_dir}')
+            logging.debug(f'rules_tab: post- importfile myrules.csv')
+            # shutil.copy("myrules.csv", self.absolute_data_dir)
+            # logging.debug(f'rules_tab: copying myrules.csv to ={self.absolute_data_dir}')
         except:
             logging.debug(f'rules_tab: unable to importfile myrules.csv')
 

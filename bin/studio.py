@@ -1609,21 +1609,27 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # os.chdir("tmpdir")
             try:
                 # self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
+                logging.debug(f'upload_config_cb(): pre- importfile mymodel.xml')
                 os.system("importfile mymodel.xml")
+                logging.debug(f'upload_config_cb(): post- importfile mymodel.xml')
 
                 # logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.absolute_data_dir}')   # 
-                logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.nanohub_session_dir}')   # 
+                # logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.nanohub_session_dir}')   # 
                 # shutil.copy("mymodel.xml", self.absolute_data_dir)
-                shutil.copy("mymodel.xml", self.nanohub_session_dir)
-                logging.debug(f'upload_config_cb(): post-copy mymodel.xml to ={self.nanohub_session_dir}')
+                # shutil.copy("mymodel.xml", self.nanohub_session_dir)
+                # logging.debug(f'upload_config_cb(): post-copy mymodel.xml to ={self.nanohub_session_dir}')
 
-                logging.debug(f'upload_config_cb(): pre- self.load_model')
-                self.load_model("mymodel")
-                logging.debug(f'upload_config_cb(): post- self.load_model')
+                # logging.debug(f'upload_config_cb(): pre- self.load_model')
+                # self.load_model("mymodel")
+                # logging.debug(f'upload_config_cb(): post- self.load_model')
 
             except:
                 logging.debug(f'upload_config_cb(): failed try: Unable to importfile mymodel.xml')
                 # self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
+
+            logging.debug(f'upload_config_cb(): pre- self.load_model')
+            self.load_model("mymodel")
+            logging.debug(f'upload_config_cb(): post- self.load_model')
 
 
     #-----------------------------------------------------------------
