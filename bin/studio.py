@@ -669,8 +669,29 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # model_menu.addAction("biorobots", self.biorobots_cb)
             # model_menu.addAction("tumor_immune", self.tumor_immune_cb)
 
+            file_menu.addAction("Open (upload) mymodel.xml", self.upload_config_cb))
+
+            self.download_menu = file_menu.addMenu('Download')
+            self.download_menu.setEnabled(False)
+            self.download_config_item = self.download_menu.addAction("Download config.xml", self.download_config_cb)
+            self.download_csv_item = self.download_menu.addAction("Download cells,rules (.csv) data", self.download_csv_cb)
+            # self.download_rules_item = self.download_menu.addAction("Download rules.txt", self.download_rules_cb)
+            self.download_svg_item = self.download_menu.addAction("Download cell (.svg) data", self.download_svg_cb)
+            self.download_mat_item = self.download_menu.addAction("Download full (.mat) data", self.download_full_cb)
+
+            # self.download_graph_item = self.download_menu.addAction("Download cell graph (.txt) data", self.download_graph_cb)
+            # self.download_menu_item.setEnabled(False)
+            # self.download_menu.setEnabled(False)
+
+            self.upload_menu = file_menu.addMenu('Upload')
+            self.upload_config_item = self.upload_menu.addAction("Upload mymodel.xml", self.upload_config_cb)
+
         #--------------
         else:
+            # nanohub related
+            self.download_menu = None
+            self.upload_menu = None
+
             file_menu.addAction("Open", self.open_as_cb, QtGui.QKeySequence('Ctrl+o'))
             file_menu.addAction("Save as", self.save_as_cb)
             file_menu.addAction("Save", self.save_cb, QtGui.QKeySequence('Ctrl+s'))
@@ -690,22 +711,6 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             file_menu.addAction("Load user project", self.load_user_proj_cb)
 
 
-        if self.nanohub_flag:
-            self.download_menu = file_menu.addMenu('Download')
-            self.download_config_item = self.download_menu.addAction("Download config.xml", self.download_config_cb)
-            self.download_csv_item = self.download_menu.addAction("Download cells,rules (.csv) data", self.download_csv_cb)
-            self.download_rules_item = self.download_menu.addAction("Download rules.txt", self.download_rules_cb)
-            self.download_svg_item = self.download_menu.addAction("Download cell (.svg) data", self.download_svg_cb)
-            self.download_mat_item = self.download_menu.addAction("Download full (.mat) data", self.download_full_cb)
-            # self.download_graph_item = self.download_menu.addAction("Download cell graph (.txt) data", self.download_graph_cb)
-            # self.download_menu_item.setEnabled(False)
-            # self.download_menu.setEnabled(False)
-
-            self.upload_menu = file_menu.addMenu('Upload')
-            self.upload_config_item = self.upload_menu.addAction("Upload mymodel.xml", self.upload_config_cb)
-        else:
-            self.download_menu = None
-            self.upload_menu = None
 
         #-------------------------
         if self.model3D_flag:
