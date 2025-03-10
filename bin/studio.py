@@ -676,6 +676,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # model_menu.addAction("tumor_immune", self.tumor_immune_cb)
 
             file_menu.addAction("Open (upload) mymodel.xml", self.upload_config_cb)
+            file_menu.addAction("Open (upload) mycells.csv", self.upload_cells_cb)
 
             self.download_menu = file_menu.addMenu('Download')
             self.download_menu.setEnabled(False)
@@ -1610,34 +1611,28 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         if self.nanohub_flag:
             cwd = os.getcwd()
             logging.debug(f'upload_config_cb(): cwd={cwd}')
-            # self.debug_tab.add_msg("upload_config_cb() ------------")
-            # self.debug_tab.add_msg("        cwd= "+cwd)
-            # self.debug_tab.add_msg("        home_dir= "+self.home_dir)
-            # os.chdir("tmpdir")
             try:
-                # self.debug_tab.add_msg("   trying to use os.system(importfile mymodel.xml)")
                 logging.debug(f'upload_config_cb(): pre- importfile mymodel.xml')
                 os.system("importfile mymodel.xml")
                 logging.debug(f'upload_config_cb(): post- importfile mymodel.xml')
-
-                # logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.absolute_data_dir}')   # 
-                # logging.debug(f'upload_config_cb(): pre-copy mymodel.xml to ={self.nanohub_session_dir}')   # 
-                # shutil.copy("mymodel.xml", self.absolute_data_dir)
-                # shutil.copy("mymodel.xml", self.nanohub_session_dir)
-                # logging.debug(f'upload_config_cb(): post-copy mymodel.xml to ={self.nanohub_session_dir}')
-
-                # logging.debug(f'upload_config_cb(): pre- self.load_model')
-                # self.load_model("mymodel")
-                # logging.debug(f'upload_config_cb(): post- self.load_model')
-
             except:
                 logging.debug(f'upload_config_cb(): failed try: Unable to importfile mymodel.xml')
-                # self.debug_tab.add_msg("   exception on: os.system(importfile mymodel.xml)")
 
             logging.debug(f'upload_config_cb(): pre- self.load_model')
             self.load_model("mymodel")
             logging.debug(f'upload_config_cb(): post- self.load_model')
 
+    #----------------------------------
+    def upload_cells_cb(self):
+        if self.nanohub_flag:
+            cwd = os.getcwd()
+            logging.debug(f'upload_cells_cb(): cwd={cwd}')
+            try:
+                logging.debug(f'upload_cells_cb(): pre- importfile mycells.csv')
+                os.system("importfile mycells.csv")
+                logging.debug(f'upload_cells_cb(): post- importfile mycells.csv')
+            except:
+                logging.debug(f'upload_cells_cb(): failed try: Unable to importfile mycells.csv')
 
     #-----------------------------------------------------------------
 
