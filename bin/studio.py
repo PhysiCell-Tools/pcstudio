@@ -676,6 +676,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # model_menu.addAction("tumor_immune", self.tumor_immune_cb)
 
             file_menu.addAction("Open (upload) mymodel.xml", self.upload_config_cb)
+            file_menu.addAction("Open (upload) myrules.csv", self.upload_rules_cb)
             file_menu.addAction("Open (upload) mycells.csv", self.upload_cells_cb)
 
             self.download_menu = file_menu.addMenu('Download')
@@ -1621,6 +1622,18 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             logging.debug(f'upload_config_cb(): pre- self.load_model')
             self.load_model("mymodel")
             logging.debug(f'upload_config_cb(): post- self.load_model')
+
+    #----------------------------------
+    def upload_rules_cb(self):
+        if self.nanohub_flag:
+            cwd = os.getcwd()
+            logging.debug(f'upload_rules_cb(): cwd={cwd}')
+            try:
+                logging.debug(f'upload_rules_cb(): pre- importfile myrules.csv')
+                os.system("importfile myrules.csv")
+                logging.debug(f'upload_rules_cb(): post- importfile myrules.csv')
+            except:
+                logging.debug(f'upload_rules_cb(): failed try: Unable to importfile myrules.csv')
 
     #----------------------------------
     def upload_cells_cb(self):
