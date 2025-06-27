@@ -12,6 +12,7 @@ import sys
 import os
 import time
 import logging
+import shutil
 from pathlib import Path
 from pretty_print_xml import pretty_print
 from PyQt5 import QtCore, QtGui
@@ -40,7 +41,6 @@ class RunModel(QWidget):
         # self.nanohub = True
         # following set in pmb.py
         self.current_dir = ''   
-        self.home_dir = ''   
         self.config_file = None
 
         # these get set in pmb.py
@@ -50,14 +50,11 @@ class RunModel(QWidget):
         self.user_params_tab = None
         self.rules_tab = None
         self.vis_tab = None
-        self.debug_tab = None
         # self.legend_tab = None
 
         self.tree = None
 
         self.output_dir = 'output'
-        if self.nanohub_flag:
-            self.output_dir = 'tmpdir'
 
         #-----
         self.sim_output = QWidget()
@@ -136,11 +133,14 @@ class RunModel(QWidget):
     # replicate what we do in the "save" function in the main module
     def update_xml_from_gui(self):
         if not self.user_params_tab.validate_utable():
+            self.show_error_message("run_tab.py: update_xml_from_gui(): Error: invalid user params table.")
             self.enable_run(True)
             return False
 
-        self.config_tab.fill_xml()
-        self.microenv_tab.fill_xml()
+        if not self.config_tab.fill_xml():
+            return False
+        if not self.microenv_tab.fill_xml():
+            return False
         self.celldef_tab.fill_xml()
         self.user_params_tab.fill_xml()
         if self.rules_flag:
@@ -160,6 +160,14 @@ class RunModel(QWidget):
 
     def run_model_cb(self):
         logging.debug(f'===========  run_model_cb():  ============')
+
+        exec_file = self.exec_name.text()
+        # print("run_model_cb(): exec_file=",exec_file)
+        # if not os.path.is_file(Path(exec_file)):
+        if not Path(exec_file).is_file():
+            self.show_error_message(f"Exec file {exec_file} does not exist.")
+            return
+
         self.celldef_tab.check_valid_cell_defs()
 
         if self.config_tab.save_svg.isChecked() and self.config_tab.save_full.isChecked():
@@ -178,42 +186,31 @@ class RunModel(QWidget):
             if True: # copy normal workflow of an app, strange as it is
                 # make sure we are where we started (app's root dir)
                 # logging.debug(f'\n------>>>> doing os.chdir to {self.current_dir}')
-                os.chdir(self.current_dir)  # session root dir on nanoHUB (not /tmpdir)
-                self.debug_tab.add_msg("run_tab: chdir to (current_dir) "+self.current_dir)
+                os.chdir(self.current_dir)
                 # remove any previous data
                 # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
                 if self.nanohub_flag:
-                    os.chdir(self.home_dir)  # session root dir on nanoHUB (not /tmpdir)
-                    self.debug_tab.add_msg("run_tab: chdir to (home_dir) "+self.home_dir)
                     os.system('rm -rf tmpdir*')
-                    time.sleep(2)
+                    time.sleep(1)
                     if os.path.isdir('tmpdir'):
                         # something on NFS causing issues...
-                        try:
-                            tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
-                            shutil.move('tmpdir', tname)
-                        except:
-                            self.debug_tab.add_msg("run_tab: NFS exception; unable to clean tmpdir")
-                    try:
-                        self.debug_tab.add_msg("run_tab: doing os.makedirs(tmpdir)")
-                        os.makedirs('tmpdir')
-                    except:
-                        self.debug_tab.add_msg("run_tab: exception with os.makedirs(tmpdir)")
+                        tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
+                        shutil.move('tmpdir', tname)
+                    os.makedirs('tmpdir')
 
                     # write the default config file to tmpdir
                     # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
-                    # tdir = os.path.abspath('tmpdir')
-                    # new_config_file = Path(tdir,"config.xml")
-                    # new_config_file = "tmpdir/config.xml"
-                    new_config_file = "config.xml"
-                    # self.output_dir = '.'
-                    self.output_dir = 'tmpdir'
-                    self.config_xml_name.setText('config.xml')
+                    tdir = os.path.abspath('tmpdir')
+                    new_config_file = Path(tdir,"config.xml")
+                    self.output_dir = '.'
                 else:
                     self.output_dir = self.config_tab.folder.text()
                     os.system('rm -rf ' + self.output_dir)
                     logging.debug(f'run_tab.py:  doing: mkdir {self.output_dir}')
-                    os.makedirs(self.output_dir)  # do 'mkdir output_dir'
+                    try:
+                        os.makedirs(self.output_dir)  # do 'mkdir output_dir'
+                    except:
+                        pass
                     time.sleep(1)
                     tdir = os.path.abspath(self.output_dir)
 
@@ -224,44 +221,30 @@ class RunModel(QWidget):
                 # self.celldef_tab.config_path = new_config_file
                 # print("run_tab.py: ----> here 4")
 
-                if not self.update_xml_from_gui():
+                if not self.update_xml_from_gui():   # if there was a problem, e.g., missing params
                     # self.run_button.setEnabled(True)
-                    self.debug_tab.add_msg("run_tab: Oops. update_xml_from_gui() returned False. Return")
                     self.enable_run(True)
                     return
 
                 # logging.debug(f'run_tab.py: ----> writing modified model to {self.config_file}')
                 # print("run_tab.py: ----> new_config_file = ",new_config_file)
                 # print("run_tab.py: ----> self.config_file = ",self.config_file)
+                self.tree.write(self.config_file)
+                # print("run_tab.py: ----> here 5")
+                pretty_print(self.config_file, self.config_file)
+
+                default_config_file = os.path.join(self.output_dir,"PhysiCell_settings.xml")
+                abs_default_config_file = os.path.abspath(default_config_file )
+                print(f"run_tab.py:  also copy to {abs_default_config_file }")
+                shutil.copy(self.config_file, default_config_file)
+
+                # self.tree.write(new_config_file)  # saves modified XML to <output_dir>/config.xml 
+                # sys.exit(1)
+
+                # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
                 if self.nanohub_flag:
-                    # self.tree.write(new_config_file)  # saves modified XML to tmpdir/config.xml 
-                    # self.debug_tab.add_msg("run_tab: writing config to "+str(new_config_file))
-                    # Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
-
-
-                    # tdir = os.path.abspath('tmpdir')
-                    # self.debug_tab.add_msg("run_tab: chdir to (tdir) "+tdir)
-
-                    # rwh: 6-1-23: No, don't run from tmpdir, but session root!
-                    # os.chdir(tdir)   # run exec from here on nanoHUB
-
-                    self.tree.write(new_config_file)  # saves modified XML to config.xml (NOT tmpdir/config.xml)
-                    self.debug_tab.add_msg("run_tab: writing config to "+str(new_config_file))
-
-                    # save current table of rules in /tmpdir (where we are now)
-                    # self.debug_tab.add_msg("run_tab: setting rules dir: "+tdir)
-                    # self.rules_tab.rules_folder.setText(".")  # rwh: will nanoHUB not like this? 
-                    # self.rules_tab.rules_folder.setText(tdir)  # rwh: will nanoHUB like this? 
-                    # self.rules_tab.rules_file.setText("rules.csv")
-                    self.rules_tab.save_rules_cb()  
-
-                else:
-                    self.tree.write(self.config_file)
-                    # print("run_tab.py: ----> here 5")
-                    pretty_print(self.config_file, self.config_file)
-                    # self.tree.write(new_config_file)  # saves modified XML to <output_dir>/config.xml 
-                    # sys.exit(1)
-
+                    tdir = os.path.abspath('tmpdir')
+                    os.chdir(tdir)   # run exec from here on nanoHUB
                 # sub.update(tdir)
                 # subprocess.Popen(["../bin/myproj", "config.xml"])
 
@@ -282,14 +265,10 @@ class RunModel(QWidget):
                 self.vis_tab.reset_model()
                 self.vis_tab.update_plots()
 
-                if self.celldef_tab.intracellular_type_dropdown.currentText().find("boolean") >= 0:
-                    print("\n--- run_tab:  calling vis_tab.build_physiboss_info()")
-                    self.vis_tab.build_physiboss_info()
-                else:
-                    print("\n--- run_tab:  calling vis_tab.disable_physiboss_info()")
-                    self.vis_tab.disable_physiboss_info()
-                    # self.vis_tab.physiboss_vis_hide
-
+                # Problem with this is that it only looks at the currently selected cell type
+                # Also, build_physiboss_info will look into all cell types, and if they are no boolean network, will hide everything
+                print("\n--- run_tab:  calling vis_tab.build_physiboss_info()")
+                self.vis_tab.build_physiboss_info()              
 
             if self.p is None:  # No process running.
                 self.enable_run(False)
@@ -297,6 +276,7 @@ class RunModel(QWidget):
                 # self.tab_widget.setTabEnabled(7, True)   # enable Legend tab
                 self.message("Executing process")
                 self.p = QProcess()  # Keep a reference to the QProcess (e.g. on self) while it's running.
+                self.p.errorOccurred.connect(self.error_cb)
                 self.p.readyReadStandardOutput.connect(self.handle_stdout)
                 self.p.readyReadStandardError.connect(self.handle_stderr)
                 self.p.stateChanged.connect(self.handle_state)
@@ -305,12 +285,9 @@ class RunModel(QWidget):
                 exec_str = self.exec_name.text()
                 xml_str = self.config_xml_name.text()
                 print("\n--- run_tab:  xml_str before run is ",xml_str)
+                print("--- run_tab:  exec_str before run is ",exec_str)
                 if self.nanohub_flag:
                     self.p.start("submit",["--local",exec_str,xml_str])
-                    self.debug_tab.add_msg("run_tab: submit --local "+exec_str + " "+xml_str)
-                    cwd = os.getcwd()
-                    self.debug_tab.add_msg("                cwd= " + cwd)
-                    # self.debug_tab.add_msg("self.p = "+str(self.p))
                 else:
                     # logging.debug(f'\nrun_tab.py: running: {exec_str}, {xml_str}')
                     self.p.start(exec_str, [xml_str])
@@ -329,58 +306,49 @@ class RunModel(QWidget):
             self.show_error_message(str(e) + " : run_cb(): Error: Please finish the definition before running.")
             self.run_button.setEnabled(True)
 
-
+    def error_cb(self, error):
+        print("\n\nERROR : QProcess failed !")
+        errorMessage = {
+            QProcess.FailedToStart: "The process failed to start",
+            QProcess.Crashed: "The process crashed some time after starting successfully.",
+            QProcess.Timedout: "The last waitFor…() function timed out. The state of QProcess is unchanged, and you can try calling waitFor…() again.",
+            QProcess.WriteError: "An error occurred when attempting to write to the process. For example, the process may not be running, or it may have closed its input channel.",
+            QProcess.ReadError: "An error occurred when attempting to read from the process. For example, the process may not be running.",
+            QProcess.UnknownError: "An unknown error occurred. This is the default return value of error()"
+        }
+        print(errorMessage[error])
+        print("Detailed logs : ", self.p.errorString())
+        print("\n\n")
+        
     def cancel_model_cb(self):
         # logging.debug(f'===========  cancel_model_cb():  ============')
-        self.debug_tab.add_msg("run_tab: cancel_model_cb() -------")
         if self.p:  # process running.
-            self.debug_tab.add_msg("   cancel_model_cb(): self.p is not None. Try to kill it.")
-            try:
-                self.p.kill()
-                # time.sleep(2)
-                # self.p.terminate()
-                self.p = None
-                time.sleep(1)
-                # self.run_button.setEnabled(True)
-            except:
-                self.debug_tab.add_msg("   cancel_model_cb(): exception trying to terminate")
-
+            if self.nanohub_flag:
+                self.p.terminate()
+            else:
+                self.p.kill()   # I *think* this worked better for Windows (but still worked for other OSes, on the desktop)
+            # self.run_button.setEnabled(True)
             self.enable_run(True)
-        else:
-            self.debug_tab.add_msg("   cancel_model_cb(): self.p is None")
 
     def handle_stderr(self):
-        try:
-            self.debug_tab.add_msg("handle_stderr(): ")
-            data = self.p.readAllStandardError()
-            stderr = bytes(data).decode("utf8")
-            self.message(stderr)
-        except:
-            self.debug_tab.add_msg("handle_stderr(): exception")
+        data = self.p.readAllStandardError()
+        stderr = bytes(data).decode("utf8")
+        self.message(stderr)
 
     def handle_stdout(self):
-        try:
-            self.debug_tab.add_msg("handle_stdout(): ")
-            data = self.p.readAllStandardOutput()
-            stdout = bytes(data).decode("utf8")
-            self.message(stdout)
-        except:
-            self.debug_tab.add_msg("handle_stdout(): exception")
-
+        data = self.p.readAllStandardOutput()
+        stdout = bytes(data).decode("utf8")
+        self.message(stdout)
 
     def handle_state(self, state):
-        try:
-            states = {
-                QProcess.NotRunning: 'Not running',
-                QProcess.Starting: 'Starting',
-                QProcess.Running: 'Running',
-            }
-            state_name = states[state]
-            self.debug_tab.add_msg("handle_state(): state_name= "+state_name)
-            self.message(f"State changed: {state_name}")
+        states = {
+            QProcess.NotRunning: 'Not running',
+            QProcess.Starting: 'Starting',
+            QProcess.Running: 'Running',
+        }
+        state_name = states[state]
+        self.message(f"State changed: {state_name}")
         # self.message(f"Starting in a few secs...")   # only for "Starting"
-        except:
-            self.debug_tab.add_msg("handle_state(): exception")
 
     def process_finished(self):
         self.message("Process finished.")

@@ -100,10 +100,9 @@ class MyQLineEdit(QLineEdit):
     prev = None
 
 class CellDef(StudioTab):
-    def __init__(self, xml_creator, nanohub_flag):
+    def __init__(self, xml_creator):
         super().__init__(xml_creator)
         
-        self.nanohub_flag = nanohub_flag
         self.celldef_param_updates = CellDefParamUpdates(self)
 
         random.seed(42)   # for reproducibility (cough). Needed for pytest results.
@@ -310,8 +309,7 @@ class CellDef(StudioTab):
         self.tab_widget.addTab(self.create_motility_tab(),"Motility")
         self.tab_widget.addTab(self.create_secretion_tab(),"Secretion")
         self.tab_widget.addTab(self.create_interaction_tab(),"Interactions")
-        if not self.nanohub_flag:
-            self.tab_widget.addTab(self.create_intracellular_tab(),"Intracellular")
+        self.tab_widget.addTab(self.create_intracellular_tab(),"Intracellular")
         self.tab_widget.addTab(self.create_custom_data_tab(),"Custom Data")
         self.tab_widget.addTab(self.create_miscellaneous_tab(),"Misc")
 
@@ -5895,8 +5893,7 @@ Please fix the IDs in the Cell Types tab. Also, be mindful of how this may affec
                     # self.ode_sbml_frame.sbml_file.setText(self.param_d[cdname]["intracellular"]["sbml_filename"])
 
         else:
-            if not self.nanohub_flag:
-                self.intracellular_type_dropdown.setCurrentIndex(0)
+            self.intracellular_type_dropdown.setCurrentIndex(0)
 
     #-----------------------------------------------------------------------------------------
     def update_custom_data_params(self):
@@ -6578,12 +6575,6 @@ Please fix the IDs in the Cell Types tab. Also, be mindful of how this may affec
 
             #-----  rwh: Sep 2024
             # self.param_d[cdef]['intracellular'] = {}
-            try:  # rwh Feb 2025 nanoHUB
-                if "none" in self.intracellular_type_dropdown.currentText():
-                    pass
-            except:
-                return
-
             if "none" in self.intracellular_type_dropdown.currentText():
                 self.param_d[cdef]['intracellular'] = None
             # elif "Boolean" in self.intracellular_type_dropdown.currentText():

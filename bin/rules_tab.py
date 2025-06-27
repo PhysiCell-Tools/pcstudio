@@ -8,7 +8,7 @@ Dr. Paul Macklin (macklinp@iu.edu)
 import sys
 import os
 import csv
-import logging
+# import logging
 
 import xml.etree.ElementTree as ET  # https://docs.python.org/2/library/xml.etree.elementtree.html
 from pathlib import Path
@@ -339,25 +339,20 @@ class Rules(QWidget):
         top_right_half_vbox.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
-        # hlayout.addStretch(1)
+        hlayout.addStretch(1)
 
+        self.import_rules_button = QPushButton("Import")
         if self.nanohub_flag:
-            self.import_rules_button = QPushButton("Import myrules.csv")
-            # self.import_rules_button.setFixedWidth(100)
-            self.import_rules_button.setStyleSheet("background-color: yellow")
-            self.import_rules_button.clicked.connect(self.import_rules_nanohub_cb)
-
-        else:
-            self.import_rules_button = QPushButton("Import")
-            self.import_rules_button.setFixedWidth(100)
-            self.import_rules_button.setStyleSheet("background-color: yellow")
-            self.import_rules_button.clicked.connect(self.import_rules_cb)
-
-            self.import_rules_question_label = HoverQuestion("Open a file dialog to select a new rules file to import.")
-            self.import_rules_question_label.show_icon()
-            hlayout.addWidget(self.import_rules_question_label)
-        
+            self.import_rules_button.setEnabled(True)
+        self.import_rules_button.setFixedWidth(100)
+        self.import_rules_button.setStyleSheet("background-color: yellow")
+        self.import_rules_button.clicked.connect(self.import_rules_cb)
         hlayout.addWidget(self.import_rules_button) 
+
+        self.import_rules_question_label = HoverQuestion("Open a file dialog to select a new rules file to import.")
+        self.import_rules_question_label.show_icon()
+        hlayout.addWidget(self.import_rules_question_label)
+        
         hlayout.addStretch(1)
 
         top_right_half_vbox.addLayout(hlayout)
@@ -1052,7 +1047,6 @@ class Rules(QWidget):
 
     #-----------------------------------------------------------
     def fill_rules(self, full_rules_fname):
-        logging.debug(f'fill_rules: full_rules_fname= {full_rules_fname}')
         # print("\n---------------- fill_rules():  full_rules_fname=",full_rules_fname)
         self.clear_rules()
 
@@ -1701,26 +1695,6 @@ class Rules(QWidget):
             print("import_rules_cb():  full_path_model_name is NOT valid")
 
     #-----------------------------------------------------------
-    def import_rules_nanohub_cb(self):
-
-        cwd = os.getcwd()
-        logging.debug(f'rules_tab: upload myrules.csv: cwd={cwd}')
-        try:
-            logging.debug(f'rules_tab: pre- importfile myrules.csv')
-            os.system("importfile myrules.csv")
-            logging.debug(f'rules_tab: post- importfile myrules.csv')
-            # shutil.copy("myrules.csv", self.absolute_data_dir)
-            # logging.debug(f'rules_tab: copying myrules.csv to ={self.absolute_data_dir}')
-        except:
-            logging.debug(f'rules_tab: unable to importfile myrules.csv')
-
-        self.fill_rules("myrules.csv")
-
-        # else:
-        #     print("import_rules_nanohub_cb():  full_path_model_name is NOT valid")
-        #     logging.debug(f'rules_tab: unable to importfile myrules.csv')
-
-    #-----------------------------------------------------------
     # load/append more
     def load_rules_cb(self):
         try:
@@ -2100,30 +2074,37 @@ class Rules(QWidget):
         return
     
     def find_and_replace_rule_row(self, old_name, new_name, irow, super_strings):
-        column_indices = [self.rules_celltype_idx, self.rules_signal_idx, self.rules_response_idx]
-        for icol in column_indices:
-            old_text = self.rules_table.cellWidget(irow, icol).text()
-            new_text = find_and_replace_rule_cell(old_name, new_name, super_strings, old_text)
-            self.rules_table.cellWidget(irow, icol).setText(new_text)
-        return
+        try:
+            column_indices = [self.rules_celltype_idx, self.rules_signal_idx, self.rules_response_idx]
+            for icol in column_indices:
+                old_text = self.rules_table.cellWidget(irow, icol).text()
+                new_text = find_and_replace_rule_cell(old_name, new_name, super_strings, old_text)
+                self.rules_table.cellWidget(irow, icol).setText(new_text)
+        except:
+            pass
     
 def find_and_replace_rule_cell(old_name, new_name, super_strings, s):
-    if s==old_name:
-        return new_name
-    
-    # there is a possibility that the old_name is a substring of some other element in the list (e.g. "mac" is being changed to "TAM" and "macrophage" is also in the list)
-    # in this case, we need to be careful to only replace the old_name and not the other element containing it (e.g. "macrophage" should not be changed to "TAMrophage")
-    # so first check if any of the super strings are in the given string
-    for super_string in super_strings:
-        if find_isolated_string(s, super_string) != -1:
-            print(f"      skipping {s} because it contains {super_string}")
-            return s
-    
-    ind = find_isolated_string(s, old_name)
-    if ind != -1:
-        print(f"      replacing {old_name} with {new_name} in {s}")
-        return s[0:ind] + new_name + s[(ind+len(old_name)):]
-    return s
+    try:
+        if s==old_name:
+            return new_name
+        
+        # there is a possibility that the old_name is a substring of some other element in the list (e.g. "mac" is being changed to "TAM" and "macrophage" is also in the list)
+        # in this case, we need to be careful to only replace the old_name and not the other element containing it (e.g. "macrophage" should not be changed to "TAMrophage")
+        # so first check if any of the super strings are in the given string
+        for super_string in super_strings:
+            if find_isolated_string(s, super_string) != -1:
+                print(f"      skipping {s} because it contains {super_string}")
+                return s
+        
+        ind = find_isolated_string(s, old_name)
+        if ind != -1:
+            print(f"      replacing {old_name} with {new_name} in {s}")
+            return s[0:ind] + new_name + s[(ind+len(old_name)):]
+        return s
+    except:
+        msg = "rules_tab:  Error replacing a string in a rule. Perhaps an invalid cell type or other."
+        show_studio_warning_window(msg)
+        return ""
 
 def find_isolated_string(s, name, start=0):
     # now make sure that neither side of the old_name is a non-space character. this will protect against simple substrate names like "a" from changing the "a" in "intracellular", for example

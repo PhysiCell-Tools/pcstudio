@@ -45,7 +45,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 
 class ICs(QWidget):
 
-    def __init__(self, config_tab, celldef_tab, biwt_flag, nanohub_flag):
+    def __init__(self, config_tab, celldef_tab, biwt_flag):
         super().__init__()
         # global self.config_params
 
@@ -55,7 +55,6 @@ class ICs(QWidget):
         self.config_tab = config_tab
 
         self.biwt_flag = biwt_flag
-        self.nanohub_flag = nanohub_flag
 
         # self.circle_radius = 100  # will be set in run_tab.py using the .xml
         # self.mech_voxel_size = 30
@@ -77,6 +76,8 @@ class ICs(QWidget):
         self.plot_ymax = 500
         self.plot_zmin = -20
         self.plot_zmax = 20
+
+        # self.nanohub_flag = nanohub_flag
 
         self.bgcolor = [1,1,1,1]  # all 1.0 for white 
 

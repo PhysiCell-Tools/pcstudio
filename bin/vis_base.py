@@ -307,7 +307,7 @@ class QHLine(QFrame):
 #---------------------------------------------------------------
 class VisBase():
 
-    def __init__(self, studio_flag, rules_flag, nanohub_flag, config_tab, microenv_tab, celldef_tab, user_params_tab, rules_tab, ics_tab, run_tab, model3D_flag, tensor_flag, ecm_flag, **kw):
+    def __init__(self, studio_flag, rules_flag, nanohub_flag, config_tab, microenv_tab, celldef_tab, user_params_tab, rules_tab, ics_tab, run_tab, model3D_flag, tensor_flag, ecm_flag, galaxy_flag, **kw):
         # super().__init__()
         # global self.config_params
         super(VisBase,self).__init__(**kw)
@@ -324,14 +324,16 @@ class VisBase():
         self.rules_tab = rules_tab
         self.ics_tab = ics_tab
 
-        self.png_frame = 0
-        self.save_png= False
+        self.frame_ind = 0
+        self.save_frame_filetype = '.png'
+        self.save_frame= False
 
         # self.vis2D = True
         self.model3D_flag = model3D_flag 
         print("--- VisBase: model3D_flag=",model3D_flag)
         self.tensor_flag = tensor_flag 
         self.ecm_flag = ecm_flag 
+        self.galaxy_flag = galaxy_flag 
 
         if not self.model3D_flag:
             # self.discrete_cell_scalars = ['cell_type', 'cycle_model', 'current_phase','is_motile','current_death_model','dead', 'number_of_nuclei']
@@ -488,7 +490,7 @@ class VisBase():
         self.fix_cmap_flag = False
         self.cells_edge_checked_flag = True
 
-        self.attachments_checked_flag = False
+        self.graph_display_type = 'NONE'
 
         self.contour_mesh = True
         self.contour_lines = False
@@ -987,7 +989,7 @@ class VisBase():
         hbox = QHBoxLayout()
         self.cell_counts_button = QPushButton("Population plot")
         # self.cell_counts_button.setStyleSheet("QPushButton {background-color: lightgreen; color: black;}")
-        bwidth = 120
+        bwidth = 130
         self.cell_counts_button.setFixedWidth(bwidth)
         self.cell_counts_button.clicked.connect(self.cell_counts_cb)
         hbox.addWidget(self.cell_counts_button)
@@ -1013,7 +1015,7 @@ class VisBase():
         self.legend_svg_button.clicked.connect(self.legend_svg_plot_cb)
         self.vbox.addWidget(self.legend_svg_button)
 
-        if not self.nanohub_flag:  # rwh Feb 2025 
+        if not self.galaxy_flag:
             self.vbox.addWidget(QHLine())
             hbox = QHBoxLayout()
             self.movie_name_edit = QLineEdit()
@@ -1322,9 +1324,7 @@ class VisBase():
         #--------
         if self.discrete_scalar == 'cell_type':   # number not known until run time
             # if not self.population_plot[self.discrete_scalar]:
-            if self.population_plot[self.discrete_scalar] is None:
-                self.population_plot[self.discrete_scalar] = PopulationPlotWindow()
-
+            self.population_plot[self.discrete_scalar] = PopulationPlotWindow() # don't test if already exists!
             self.population_plot[self.discrete_scalar].ax0.cla()
 
             # ctype_plot = []
@@ -1366,7 +1366,6 @@ class VisBase():
             self.population_plot[self.discrete_scalar].ax0.legend(loc='center left', prop={'size': 8})
             self.population_plot[self.discrete_scalar].canvas.update()
             self.population_plot[self.discrete_scalar].canvas.draw()
-            # self.population_plot[self.discrete_scalar].ax0.legend(loc='center right', prop={'size': 8})
             self.population_plot[self.discrete_scalar].show()
 
         #--------
@@ -1387,12 +1386,9 @@ class VisBase():
             # for itype, ctname in enumerate(self.celltypes_list):
             # print("  self.celltype_name=",self.celltype_name)
             # for itype in range(self.discrete_scalar_len[self.discrete_scalar]):
-            # for itype in self.discrete_scalar_vals[self.discrete_scalar]:
-            for index_disc_scalar, itype in enumerate(self.discrete_scalar_vals[self.discrete_scalar]):
-
+            for itype in self.discrete_scalar_vals[self.discrete_scalar]:
                 # print("  cell_counts_cb(): itype= ",itype)
-                # ctcolor = 'C' + str(itype)   # use random colors from matplotlib
-                ctcolor = 'C' + str(index_disc_scalar)   # use random colors from matplotlib
+                ctcolor = 'C' + str(itype)   # use random colors from matplotlib
                 # print("  ctcolor=",ctcolor)
                 # yval = np.array( [(np.count_nonzero((mcds[idx].data['discrete_cells']['data']['cell_type'] == itype) & (mcds[idx].data['discrete_cells']['data']['cycle_model'] < 100.) == True)) for idx in range(len(mcds))] )
 
@@ -1406,10 +1402,8 @@ class VisBase():
                 if self.discrete_scalar == 'current_death_model': # Hack: because current_death_model is not working in PhysiCell, using cycle_model instead  
                     if self.celltype_filter: # Cell type filter applied here
                         yval = np.array( [(np.count_nonzero((np.isin(mcds[idx].data['discrete_cells']['data']['cell_type'], self.celltype_filter)) & (mcds[idx].data['discrete_cells']['data']['cycle_model'] == itype) & (mcds[idx].data['discrete_cells']['data']['cycle_model'] < 999.) == True)) for idx in range(len(mcds))] )
-                        print("--- current_death_model(A): yval= ",yval)
                     else:
                         yval = np.array( [(np.count_nonzero((mcds[idx].data['discrete_cells']['data']['cycle_model'] == itype) & (mcds[idx].data['discrete_cells']['data']['cycle_model'] < 999.) == True)) for idx in range(len(mcds))] )
-                        print("--- current_death_model(B): yval= ",yval)
                 else:
                     if self.celltype_filter: # Cell type filter applied here
                         yval = np.array( [(np.count_nonzero((np.isin(mcds[idx].data['discrete_cells']['data']['cell_type'], self.celltype_filter)) & (mcds[idx].data['discrete_cells']['data'][self.discrete_scalar] == itype) & (mcds[idx].data['discrete_cells']['data']['cycle_model'] < 999.) == True)) for idx in range(len(mcds))] )
@@ -1440,10 +1434,7 @@ class VisBase():
                 self.population_plot[self.discrete_scalar].ax0.set_title(self.discrete_scalar, fontsize=10)
             self.population_plot[self.discrete_scalar].ax0.legend(loc='center left', prop={'size': 8})
             self.population_plot[self.discrete_scalar].canvas.update()
-            try:  # rwh Feb 2025 nanoHUB
-                self.population_plot[self.discrete_scalar].canvas.draw()
-            except:
-                pass
+            self.population_plot[self.discrete_scalar].canvas.draw()
             self.population_plot[self.discrete_scalar].show()
 
     # ------ overridden for 3D (vis3D_tab.py)

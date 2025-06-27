@@ -22,7 +22,11 @@ from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 from matplotlib.collections import PatchCollection
 import matplotlib.colors as mplc
-from matplotlib import gridspec, colormaps
+from matplotlib import gridspec
+try:
+    from matplotlib import colormaps
+except:
+    import matplotlib.cm as cm
 from collections import deque
 import glob
 
@@ -45,7 +49,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 
 class ICs(QWidget):
 
-    def __init__(self, config_tab, celldef_tab, biwt_flag, nanohub_flag):
+    def __init__(self, config_tab, celldef_tab, nanohub_flag, biwt_flag):
         super().__init__()
         # global self.config_params
 
@@ -55,7 +59,6 @@ class ICs(QWidget):
         self.config_tab = config_tab
 
         self.biwt_flag = biwt_flag
-        self.nanohub_flag = nanohub_flag
 
         # self.circle_radius = 100  # will be set in run_tab.py using the .xml
         # self.mech_voxel_size = 30
@@ -77,6 +80,8 @@ class ICs(QWidget):
         self.plot_ymax = 500
         self.plot_zmin = -20
         self.plot_zmax = 20
+
+        self.nanohub_flag = nanohub_flag
 
         self.bgcolor = [1,1,1,1]  # all 1.0 for white 
 
@@ -510,11 +515,12 @@ class ICs(QWidget):
         # self.vbox.addWidget(QHLine())
 
         # hbox = QHBoxLayout()
-        self.import_button = QPushButton("Import (cell type name syntax only)")
-        self.import_button.setFixedWidth(230)
-        self.import_button.setStyleSheet("QPushButton {background-color: lightgreen; color: black;}")
-        self.import_button.clicked.connect(self.import_cb)
-        self.vbox.addWidget(self.import_button)
+        if not self.nanohub_flag:
+            self.import_button = QPushButton("Import (cell type name syntax only)")
+            self.import_button.setFixedWidth(230)
+            self.import_button.setStyleSheet("QPushButton {background-color: lightgreen; color: black;}")
+            self.import_button.clicked.connect(self.import_cb)
+            self.vbox.addWidget(self.import_button)
 
         # self.plot_button2 = QPushButton("Plot")
         # self.plot_button2.setFixedWidth(btn_width)
@@ -588,195 +594,192 @@ class ICs(QWidget):
 
         #--------------------- substrate save button
 
-        label = QLabel("Substrate Initital Conditions")
-        # label.setFixedHeight(label_height)
-        label.setStyleSheet("background-color: orange")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        idx_row = 0
-        self.vbox.addWidget(label) # w, row, column, rowspan, colspan
+        if not self.nanohub_flag:
+            label = QLabel("Substrate Initital Conditions")
+            # label.setFixedHeight(label_height)
+            label.setStyleSheet("background-color: orange")
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            idx_row = 0
+            self.vbox.addWidget(label) # w, row, column, rowspan, colspan
 
 
-        hbox = QHBoxLayout()
-        ic_substrates_enabled_label = QLabel("Enable substrate ICs:")
-        hbox.addWidget(ic_substrates_enabled_label)
-        self.ic_substrates_enabled = QCheckBox_custom("")
-        hbox.addWidget(self.ic_substrates_enabled)
-        hbox.addStretch(1)
+            hbox = QHBoxLayout()
+            label = QLabel("Substrate")
+            label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(label)
+            
+            self.substrate_combobox = QComboBox()
+            self.substrate_combobox.setFixedWidth(200)  # how wide is sufficient?
+            self.substrate_combobox.currentIndexChanged.connect(self.substrate_combobox_changed_cb)
+            hbox.addWidget(self.substrate_combobox)
 
-        label = QLabel("Substrate")
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label)
-        
-        self.substrate_combobox = QComboBox()
-        self.substrate_combobox.setFixedWidth(150)  # how wide is sufficient?
-        self.substrate_combobox.currentIndexChanged.connect(self.substrate_combobox_changed_cb)
-        hbox.addWidget(self.substrate_combobox)
+            msg = """
+                How to use the substrate plotter:
+                * select a brush and the parameters
+                * click on the plot to start plotting
+                * click again to stop (or leave the plot area)
+                * Note: the Gaussian brush will only update a pixel value if it is greater than the current value
+            """
+            self.ic_substrate_question_label = HoverQuestion(msg)
+            self.ic_substrate_question_label.show_icon()
+            hbox.addWidget(self.ic_substrate_question_label)
 
-        msg = """
-            How to use the substrate plotter:
-            * select a brush and the parameters
-            * click on the plot to start plotting
-            * click again to stop (or leave the plot area)
-            * Note: the Gaussian brush will only update a pixel value if it is greater than the current value
-        """
-        self.ic_substrate_question_label = HoverQuestion(msg)
-        self.ic_substrate_question_label.show_icon()
-        hbox.addWidget(self.ic_substrate_question_label)
+            hbox.addStretch(1)
+            self.vbox.addLayout(hbox)
 
-        self.vbox.addLayout(hbox)
+            hbox = QHBoxLayout()
+            label = QLabel("Brush")
+            label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(label)
+            
+            self.brush_combobox = QComboBox()
+            self.brush_combobox.addItem("point")
+            self.brush_combobox.addItem("rectangle")
+            self.brush_combobox.addItem("gaussian_rectangle")
+            self.brush_combobox.currentIndexChanged.connect(self.brush_combobox_changed_cb)
+            self.brush_combobox.setFixedWidth(200)  # how wide is sufficient?
+            hbox.addWidget(self.brush_combobox)
 
-        hbox = QHBoxLayout()
-        label = QLabel("Brush")
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label)
-        
-        self.brush_combobox = QComboBox()
-        self.brush_combobox.addItem("point")
-        self.brush_combobox.addItem("rectangle")
-        self.brush_combobox.addItem("gaussian_rectangle")
-        self.brush_combobox.currentIndexChanged.connect(self.brush_combobox_changed_cb)
-        self.brush_combobox.setFixedWidth(200)  # how wide is sufficient?
-        hbox.addWidget(self.brush_combobox)
+            label = QLabel("Value")
+            label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(label)
+            
+            self.substrate_set_value = QLineEdit()
+            self.substrate_set_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_set_value.setEnabled(True)
+            self.substrate_set_value.setText(str(self.current_substrate_set_value))
+            self.substrate_set_value.textChanged.connect(self.substrate_set_value_changed_cb)
+            self.substrate_set_value.setValidator(QtGui.QDoubleValidator(0.,10000.,4))
+            hbox.addWidget(self.substrate_set_value)
+            hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+            self.vbox.addLayout(hbox)
 
-        label = QLabel("Value")
-        label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(label)
-        
-        self.substrate_set_value = QLineEdit()
-        self.substrate_set_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_set_value.setEnabled(True)
-        self.substrate_set_value.setText(str(self.current_substrate_set_value))
-        self.substrate_set_value.textChanged.connect(self.substrate_set_value_changed_cb)
-        self.substrate_set_value.setValidator(QtGui.QDoubleValidator(0.,10000.,4))
-        hbox.addWidget(self.substrate_set_value)
-        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
-        self.vbox.addLayout(hbox)
+            hbox = QHBoxLayout()
+            self.substrate_par_1_label = QLabel()
+            self.substrate_par_1_label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(self.substrate_par_1_label)
 
-        hbox = QHBoxLayout()
-        self.substrate_par_1_label = QLabel()
-        self.substrate_par_1_label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(self.substrate_par_1_label)
+            self.substrate_par_1_value = QLineEdit()
+            self.substrate_par_1_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_par_1_value.setEnabled(False)
+            self.substrate_par_1_value.textChanged.connect(self.substrate_par_1_value_changed_cb)
+            self.substrate_par_1_value.setStyleSheet(style_sheet_template(QLineEdit))
+            self.substrate_par_1_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
+            hbox.addWidget(self.substrate_par_1_value)
 
-        self.substrate_par_1_value = QLineEdit()
-        self.substrate_par_1_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_par_1_value.setEnabled(False)
-        self.substrate_par_1_value.textChanged.connect(self.substrate_par_1_value_changed_cb)
-        self.substrate_par_1_value.setStyleSheet(style_sheet_template(QLineEdit))
-        self.substrate_par_1_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
-        hbox.addWidget(self.substrate_par_1_value)
+            self.substrate_par_2_label = QLabel()
+            self.substrate_par_2_label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(self.substrate_par_2_label)
 
-        self.substrate_par_2_label = QLabel()
-        self.substrate_par_2_label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(self.substrate_par_2_label)
+            self.substrate_par_2_value = QLineEdit()
+            self.substrate_par_2_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_par_2_value.setEnabled(False)
+            self.substrate_par_2_value.textChanged.connect(self.substrate_par_2_value_changed_cb)
+            self.substrate_par_2_value.setStyleSheet(style_sheet_template(QLineEdit))
+            self.substrate_par_2_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
+            hbox.addWidget(self.substrate_par_2_value)
 
-        self.substrate_par_2_value = QLineEdit()
-        self.substrate_par_2_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_par_2_value.setEnabled(False)
-        self.substrate_par_2_value.textChanged.connect(self.substrate_par_2_value_changed_cb)
-        self.substrate_par_2_value.setStyleSheet(style_sheet_template(QLineEdit))
-        self.substrate_par_2_value.setValidator(QtGui.QDoubleValidator(0.,10000.,2))
-        hbox.addWidget(self.substrate_par_2_value)
+            self.substrate_par_3_label = QLabel()
+            self.substrate_par_3_label.setAlignment(QtCore.Qt.AlignRight)
+            hbox.addWidget(self.substrate_par_3_label)
 
-        self.substrate_par_3_label = QLabel()
-        self.substrate_par_3_label.setAlignment(QtCore.Qt.AlignRight)
-        hbox.addWidget(self.substrate_par_3_label)
+            self.substrate_par_3_value = QLineEdit()
+            self.substrate_par_3_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
+            self.substrate_par_3_value.setEnabled(False)
+            self.substrate_par_3_value.textChanged.connect(self.substrate_par_3_value_changed_cb)
+            self.substrate_par_3_value.setStyleSheet(style_sheet_template(QLineEdit))
+            self.substrate_par_3_value.setValidator(QtGui.QDoubleValidator(0.,10000.,3))
+            hbox.addWidget(self.substrate_par_3_value)
+            hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+            
+            self.vbox.addLayout(hbox)
 
-        self.substrate_par_3_value = QLineEdit()
-        self.substrate_par_3_value.setFixedWidth(fixed_width_value)  # how wide is sufficient?
-        self.substrate_par_3_value.setEnabled(False)
-        self.substrate_par_3_value.textChanged.connect(self.substrate_par_3_value_changed_cb)
-        self.substrate_par_3_value.setStyleSheet(style_sheet_template(QLineEdit))
-        self.substrate_par_3_value.setValidator(QtGui.QDoubleValidator(0.,10000.,3))
-        hbox.addWidget(self.substrate_par_3_value)
-        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
-        
-        self.vbox.addLayout(hbox)
+            hbox = QHBoxLayout()
 
-        hbox = QHBoxLayout()
+            self.fix_cmap_checkbox = QCheckBox_custom('fix: ')
+            self.fix_cmap_flag = False
+            self.fix_cmap_checkbox.setEnabled(True)
+            self.fix_cmap_checkbox.setChecked(self.fix_cmap_flag)
+            self.fix_cmap_checkbox.clicked.connect(self.fix_cmap_toggle_cb)
+            hbox.addWidget(self.fix_cmap_checkbox)
 
-        self.fix_cmap_checkbox = QCheckBox_custom('fix: ')
-        self.fix_cmap_flag = False
-        self.fix_cmap_checkbox.setEnabled(True)
-        self.fix_cmap_checkbox.setChecked(self.fix_cmap_flag)
-        self.fix_cmap_checkbox.clicked.connect(self.fix_cmap_toggle_cb)
-        hbox.addWidget(self.fix_cmap_checkbox)
+            cvalue_width = 60
+            label = QLabel("cmin")
+            # label.setFixedWidth(label_width)
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            # label.setAlignment(QtCore.Qt.AlignLeft)
+            hbox.addWidget(label)
+            self.cmin = QLineEdit()
+            self.cmin.setText('0.0')
+            self.cmin.setEnabled(False)
+            self.cmin.setStyleSheet(style_sheet_template(QLineEdit))
+            # self.cmin.textChanged.connect(self.change_plot_range)
+            self.cmin.editingFinished.connect(self.cmin_cmax_cb)
+            self.cmin.setFixedWidth(cvalue_width)
+            self.cmin.setValidator(QtGui.QDoubleValidator())
+            # self.cmin.setEnabled(False)
+            hbox.addWidget(self.cmin)
 
-        cvalue_width = 60
-        label = QLabel("cmin")
-        # label.setFixedWidth(label_width)
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        # label.setAlignment(QtCore.Qt.AlignLeft)
-        hbox.addWidget(label)
-        self.cmin = QLineEdit()
-        self.cmin.setText('0.0')
-        self.cmin.setEnabled(False)
-        self.cmin.setStyleSheet(style_sheet_template(QLineEdit))
-        # self.cmin.textChanged.connect(self.change_plot_range)
-        self.cmin.editingFinished.connect(self.cmin_cmax_cb)
-        self.cmin.setFixedWidth(cvalue_width)
-        self.cmin.setValidator(QtGui.QDoubleValidator())
-        # self.cmin.setEnabled(False)
-        hbox.addWidget(self.cmin)
+            label = QLabel("cmax")
+            # label.setFixedWidth(label_width)
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            hbox.addWidget(label)
+            self.cmax = QLineEdit()
+            self.cmax.setText('1.0')
+            self.cmax.setEnabled(False)
+            self.cmax.setStyleSheet(style_sheet_template(QLineEdit))
+            self.cmax.editingFinished.connect(self.cmin_cmax_cb)
+            self.cmax.setFixedWidth(cvalue_width)
+            self.cmax.setValidator(QtGui.QDoubleValidator())
+            # self.cmax.setEnabled(False)
+            hbox.addWidget(self.cmax)
 
-        label = QLabel("cmax")
-        # label.setFixedWidth(label_width)
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        hbox.addWidget(label)
-        self.cmax = QLineEdit()
-        self.cmax.setText('1.0')
-        self.cmax.setEnabled(False)
-        self.cmax.setStyleSheet(style_sheet_template(QLineEdit))
-        self.cmax.editingFinished.connect(self.cmin_cmax_cb)
-        self.cmax.setFixedWidth(cvalue_width)
-        self.cmax.setValidator(QtGui.QDoubleValidator())
-        # self.cmax.setEnabled(False)
-        hbox.addWidget(self.cmax)
+            label = QLabel("scale")
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            hbox.addWidget(label)
 
-        label = QLabel("scale")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        hbox.addWidget(label)
+            self.color_scale_combobox = QComboBox()
+            self.color_scale_combobox.currentIndexChanged.connect(self.color_scale_combobox_changed_cb)
+            self.color_scale_combobox.setFixedWidth(100)  # how wide is sufficient?
+            self.color_scale_combobox.addItem("auto")
+            self.color_scale_combobox.addItem("linear")
+            self.color_scale_combobox.addItem("log")
+            hbox.addWidget(self.color_scale_combobox)
 
-        self.color_scale_combobox = QComboBox()
-        self.color_scale_combobox.currentIndexChanged.connect(self.color_scale_combobox_changed_cb)
-        self.color_scale_combobox.setFixedWidth(100)  # how wide is sufficient?
-        self.color_scale_combobox.addItem("auto")
-        self.color_scale_combobox.addItem("linear")
-        self.color_scale_combobox.addItem("log")
-        hbox.addWidget(self.color_scale_combobox)
+            hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
 
-        hbox.addStretch(1)  # not sure about this, but keeps buttons shoved to left
+            self.vbox.addLayout(hbox)
 
-        self.vbox.addLayout(hbox)
+            hbox = QHBoxLayout()
+            self.save_button_substrates = QPushButton("Save")
+            self.save_button_substrates.setFixedWidth(110)
+            self.save_button_substrates.setStyleSheet("QPushButton {background-color: yellow; color: black;}")
+            self.save_button_substrates.clicked.connect(self.save_substrate_cb)
+            hbox.addWidget(self.save_button_substrates)
 
-        hbox = QHBoxLayout()
-        self.save_button_substrates = QPushButton("Save")
-        self.save_button_substrates.setFixedWidth(110)
-        self.save_button_substrates.setStyleSheet("QPushButton {background-color: yellow; color: black;}")
-        self.save_button_substrates.clicked.connect(self.save_substrate_cb)
-        hbox.addWidget(self.save_button_substrates)
+            hbox.addWidget(QLabel("to:"))
 
-        hbox.addWidget(QLabel("to:"))
+            self.substrate_save_folder = QLineEdit()
+            self.substrate_save_folder.setPlaceholderText("folder")
+            self.substrate_save_file = QLineEdit_custom()
+            csv_validator = QRegExpValidator(QtCore.QRegExp(r'^.+\.csv$'))
+            self.substrate_save_file.setValidator(csv_validator)
+            self.substrate_save_file.setPlaceholderText("file.csv")
 
-        self.substrate_save_folder = QLineEdit()
-        self.substrate_save_folder.setPlaceholderText("folder")
-        self.substrate_save_file = QLineEdit_custom()
-        csv_validator = QRegExpValidator(QtCore.QRegExp(r'^.+\.csv$'))
-        self.substrate_save_file.setValidator(csv_validator)
-        self.substrate_save_file.setPlaceholderText("file.csv")
+            hbox.addWidget(self.substrate_save_folder)
+            hbox.addWidget(QLabel(os.path.sep))
+            hbox.addWidget(self.substrate_save_file)
 
-        hbox.addWidget(self.substrate_save_folder)
-        hbox.addWidget(QLabel(os.path.sep))
-        hbox.addWidget(self.substrate_save_file)
+            hbox.addStretch()
 
-        hbox.addStretch()
+            self.vbox.addLayout(hbox)
 
-        self.vbox.addLayout(hbox)
-
-        self.import_substrate_button = QPushButton("Import")
-        self.import_substrate_button.setFixedWidth(150)
-        self.import_substrate_button.setStyleSheet("QPushButton {background-color: lightgreen; color: black;}")
-        self.import_substrate_button.clicked.connect(self.import_substrate_cb)
-        self.vbox.addWidget(self.import_substrate_button)
+        if not self.nanohub_flag:
+            self.import_substrate_button = QPushButton("Import")
+            self.import_substrate_button.setFixedWidth(150)
+            self.import_substrate_button.setStyleSheet("QPushButton {background-color: lightgreen; color: black;}")
+            self.import_substrate_button.clicked.connect(self.import_substrate_cb)
+            self.vbox.addWidget(self.import_substrate_button)
 
         #---------------------
         splitter = QSplitter()
@@ -1208,18 +1211,23 @@ class ICs(QWidget):
         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
         self.ax0.set_aspect(1.0)
 
-        try:
-            self.cmap = plt.cm.get_cmap("viridis")
-        except:
-            self.cmap = colormaps.get_cmap("viridis")
-        self.setupSubstratePlotParameters()
-        self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
-        
-        ax1_divider = make_axes_locatable(self.ax0)
-        self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
-        self.cbar1 = self.figure.colorbar(self.substrate_plot, cax=self.cax1)
-        self.cbar1.ax.tick_params(labelsize=self.fontsize)
-        self.cbar1.set_label(self.substrate_combobox.currentText()) 
+        if not self.nanohub_flag:  # rwh Feb 2025 
+            try:
+                # self.cmap = plt.cm.get_cmap("viridis")
+                self.cmap = cm.get_cmap("viridis")
+            except:
+                self.cmap = colormaps.get_cmap("viridis")
+            self.setupSubstratePlotParameters()
+            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+            
+            ax1_divider = make_axes_locatable(self.ax0)
+            self.cax1 = ax1_divider.append_axes("right", size="4%", pad="2%")
+            self.cbar1 = self.figure.colorbar(self.substrate_plot, cax=self.cax1)
+            self.cbar1.ax.tick_params(labelsize=self.fontsize)
+            try:
+                self.cbar1.set_label(self.substrate_combobox.currentText()) 
+            except:
+                pass
         
         self.time_of_last_substrate_plot_update = time.time()
         self.substrate_plot_time_delay = 0.1
@@ -1241,12 +1249,6 @@ class ICs(QWidget):
         if self.mouse_pressed is False:
             self.update_substrate_plot(check_time_delay=False)
             return
-        # if unchecked and the file exists, check it
-        if not self.ic_substrates_enabled.isChecked() and \
-           self.substrate_save_folder.text() != "" and \
-           self.substrate_save_file.text() != "" and \
-           os.path.isfile(os.path.join(self.substrate_save_folder.text(), self.substrate_save_file.text())):
-            self.ic_substrates_enabled.setChecked(True)
         x, y, z = self.getPos(event)
         if (x is None) or (y is None) or (z is None):
             self.current_voxel_subs = None
@@ -1325,6 +1327,8 @@ class ICs(QWidget):
         return x - remainder + 0.5 * dx
     
     def update_substrate_plot(self, check_time_delay):
+        if self.nanohub_flag:  # rwh Feb 2025 
+            return
         if (not check_time_delay) or (time.time() > self.time_of_last_substrate_plot_update+self.substrate_plot_time_delay):
             self.substrate_plot.set_data(self.current_substrate_values)
             # self.substrate_plot.set_clim(vmin=np.min(self.current_substrate_values),vmax=np.max(self.current_substrate_values))
@@ -1519,7 +1523,8 @@ class ICs(QWidget):
 
         self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+        if not self.nanohub_flag:  # rwh Feb 2025 
+            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
 
         # self.update_plots()
         self.canvas.update()
@@ -2100,7 +2105,8 @@ class ICs(QWidget):
         self.ax0.cla()
         self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
         self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-        self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+        if not self.nanohub_flag:  # rwh Feb 2025 
+            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
         self.canvas.update()
         self.canvas.draw()
 
@@ -2124,7 +2130,8 @@ class ICs(QWidget):
             os.makedirs(dir_name)
             time.sleep(1)
         full_fname = os.path.join(dir_name,self.output_file.text())
-        print("save_cb(): full_fname=",full_fname)
+        logging.debug(f'ics_tab: full_fname (for .csv)= {full_fname}')
+        # print("save_cb(): full_fname=",full_fname)
 
         # if self.nanohub_flag and os.path.isdir('tmpdir'):
         #     # something on NFS causing issues...
@@ -2147,20 +2154,22 @@ class ICs(QWidget):
 
         # Recall: self.csv_array = np.empty([1,4])  # default floats
         if self.use_names.isChecked():
-            print("----- Writing v2 (with cell names) .csv file for cells")
-            print("----- full_fname=",full_fname)
+            # print("----- Writing v2 (with cell names) .csv file for cells")
+            # print("----- full_fname=",full_fname)
             # print("self.csv_array.shape= ",self.csv_array.shape)
             # print(self.csv_array)
             cell_name = list(self.celldef_tab.param_d.keys())
             # print("cell_name=",cell_name)
+            logging.debug(f'ics_tab: before "with open"')
             with open(full_fname, 'w') as f:
                 f.write('x,y,z,type,volume,cycle entry,custom:GFP,custom:sample\n')  # PhysiCell checks for "x" or "X"
                 for idx in range(len(self.csv_array)):
                     ict = int(self.csv_array[idx,3])  # cell type index
                     f.write(f'{self.csv_array[idx,0]},{self.csv_array[idx,1]},{self.csv_array[idx,2]},{cell_name[ict]}\n')
+            logging.debug(f'ics_tab: after "with open"')
         else:
-            print("----- Writing v1 (with cell indices) .csv file for cells")
-            print("----- full_fname=",full_fname)
+            # print("----- Writing v1 (with cell indices) .csv file for cells")
+            # print("----- full_fname=",full_fname)
             np.savetxt(full_fname, self.csv_array, delimiter=',')
 
     def save_substrate_cb(self):
@@ -2180,7 +2189,7 @@ class ICs(QWidget):
             os.makedirs(folder)
             time.sleep(1)
 
-        print("save_substrate_cb(): self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
+        # print("save_substrate_cb(): self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
         
         X = np.tile(self.plot_xx,self.ny).reshape((-1,1))
         Y = np.repeat(self.plot_yy,self.nx).reshape((-1,1))
@@ -2189,18 +2198,18 @@ class ICs(QWidget):
         nonzero_substrates = (C!=0).any(axis=0)
         if ~nonzero_substrates.any():
             # then no substrates are being saved; just disable ics and move on
-            print("---- All substrate ics are 0. Not saving and disabling ics")
-            self.ic_substrates_enabled.setChecked(False)
+            # print("---- All substrate ics are 0. Not saving and disabling ics")
+            self.enable_csv_for_substrate_ics = False
             return
         
-        print("----- Writing .csv file for substrate")
-        print("----- self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
+        # print("----- Writing .csv file for substrate")
+        # print("----- self.full_substrate_ic_fname=",self.full_substrate_ic_fname)
 
         C = C[:,nonzero_substrates] # remove columns of all zeros corresponding to substrates that were not set
         substrates_to_save = [self.substrate_list[i] for i in range(len(self.substrate_list)) if nonzero_substrates[i]]
         header = f'x,y,z,{",".join(substrates_to_save)}'
         np.savetxt(self.full_substrate_ic_fname, np.concatenate((X,Y,Z,C), axis=1), delimiter=',',header=header,comments='')
-        self.ic_substrates_enabled.setChecked(True)
+        self.enable_csv_for_substrate_ics = True
 
     #--------------------------------------------------
     def import_cb(self):
@@ -2314,24 +2323,9 @@ class ICs(QWidget):
         self.csv_folder.setText(self.config_tab.csv_folder.text())
         self.output_file.setText(self.config_tab.csv_file.text())
         self.fill_substrate_combobox()
-        self.fill_ic_substrates_widgets()
         if self.biwt_flag:
             self.biwt_tab.fill_gui()
-
-    def fill_ic_substrates_widgets(self):
-        substrate_initial_condition_element = self.config_tab.xml_root.find(".//microenvironment_setup//options//initial_condition")
-        if substrate_initial_condition_element is None or substrate_initial_condition_element.attrib["enabled"].lower() == "false":
-            self.ic_substrates_enabled.setChecked(False)
-            return
-        path_to_file = substrate_initial_condition_element.find(".//filename").text
-        if os.path.isfile(path_to_file):
-            self.ic_substrates_enabled.setChecked(True)
-            self.substrate_save_folder.setText(os.path.dirname(path_to_file))
-            self.substrate_save_file.setText(os.path.basename(path_to_file))
-            self.full_substrate_ic_fname = path_to_file
-            self.import_substrate_from_file()
-        else:
-            self.ic_substrates_enabled.setChecked(False)
+        
 
     def on_enter_axes(self, event):
         self.mouse_on_axes = True
@@ -2348,9 +2342,12 @@ class ICs(QWidget):
 
     def displayCurrentCoordinates(self, event):
         current_location = self.getPos(event)
-        self.ax0.set_title(f"(x,y) = ({round(current_location[0])}, {round(current_location[1])})")
-        self.canvas.update()
-        self.canvas.draw()
+        try:  # rwh Feb 2025 nanohub
+            self.ax0.set_title(f"(x,y) = ({round(current_location[0])}, {round(current_location[1])})")
+            self.canvas.update()
+            self.canvas.draw()
+        except:
+            pass
 
     def substrate_combobox_changed_cb(self):
         self.current_substrate_ind = self.substrate_combobox.currentIndex()
@@ -2463,6 +2460,8 @@ class ICs(QWidget):
             pass
         
     def fill_substrate_combobox(self):
+        if self.nanohub_flag:
+            return
         logging.debug(f'ics_tab.py: ------- fill_substrate_combobox')
         self.substrate_list.clear()  # rwh/todo: where/why/how is this list maintained?
         self.substrate_combobox.clear()
@@ -2526,20 +2525,20 @@ class ICs(QWidget):
         self.plot_zz = np.arange(0,self.nz)*self.zdel+self.plot_zmin+0.5*self.zdel
         self.current_substrate_values = np.zeros((self.ny, self.nx)) # set it up for plotting
         self.all_substrate_values = np.zeros((self.ny, self.nx, len(self.substrate_list)))
+        self.enable_csv_for_substrate_ics = False # since we're reseting this here, might as well disable this
 
     def import_substrate_cb(self):
         filePath = QFileDialog.getOpenFileName(self,'',".")
-        self.full_substrate_ic_fname = filePath[0]
+        full_path_file_name = filePath[0]
 
-        self.import_substrate_from_file()
+        self.import_substrate_from_file(full_path_file_name)
 
-    def import_substrate_from_file(self):
-        if (len(self.full_substrate_ic_fname) == 0) or (not Path(self.full_substrate_ic_fname).is_file()):
-            print("import_substrate_from_file():  self.full_substrate_ic_fname is NOT valid")
-            self.ic_substrates_enabled.setChecked(False)
+    def import_substrate_from_file(self, full_path_file_name):
+        if (len(full_path_file_name) == 0) or (not Path(full_path_file_name).is_file()):
+            print("import_substrate_from_file():  full_path_file_name is NOT valid")
             return
 
-        with open(self.full_substrate_ic_fname, newline='') as csvfile:
+        with open(full_path_file_name, newline='') as csvfile:
             data = list(csv.reader(csvfile))
             if data[0][0]=='x': # check for header row
                 substrate_names = data[0][3:]
@@ -2552,15 +2551,12 @@ class ICs(QWidget):
                 # we could help the user out and load up what is there to work with, but they're probably better served by just getting a reality check with a reset to zeros
                 print(f"WARNING: Substrate IC CSV did not have the correct number of voxels ({data.shape[0]}!={self.nx*self.ny}). Reseting all concentrations to 0.")
                 self.setupSubstratePlotParameters()
-                self.ic_substrates_enabled.setChecked(False)
             else:
                 self.all_substrate_values[:,:,col_inds] = data[:,3:].reshape((self.ny, self.nx, -1))
                 self.current_substrate_values = self.all_substrate_values[:,:,self.substrate_combobox.currentIndex()]
-                self.ic_substrates_enabled.setChecked(True)
             check_time_delay = False
             self.update_substrate_plot(check_time_delay)
-        return
-        
+
     def checkForNewGrid(self):
         if float(self.config_tab.xmin.text())!=self.plot_xmin or float(self.config_tab.xmax.text())!=self.plot_xmax or float(self.config_tab.xdel.text())!=self.xdel \
             or float(self.config_tab.ymin.text())!=self.plot_ymin or float(self.config_tab.ymax.text())!=self.plot_ymax or float(self.config_tab.ydel.text())!=self.ydel:
@@ -2568,7 +2564,8 @@ class ICs(QWidget):
             self.setupSubstratePlotParameters()
             self.ax0.set_xlim(self.plot_xmin, self.plot_xmax)
             self.ax0.set_ylim(self.plot_ymin, self.plot_ymax)
-            self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
+            if not self.nanohub_flag:  # rwh Feb 2025 
+                self.substrate_plot = self.ax0.imshow(self.current_substrate_values, origin="lower",extent=(0, 1, 0, 1), transform=self.ax0.transAxes, vmin=0,vmax=1, interpolation='nearest')
             self.canvas.update()
             self.canvas.draw()
 
@@ -2606,7 +2603,11 @@ class ICs(QWidget):
             max_val = float(self.substrate_color_pars[self.substrate_combobox.currentText()]["cmax"])
         else:
             min_val = min(float(self.substrate_set_value.text()),np.min(self.current_substrate_values))
-            min_pos_val = np.min(self.current_substrate_values[self.current_substrate_values>0],initial=float(self.substrate_set_value.text()))
+            try:  # rwh Feb 2025 for nanoHUB
+                min_pos_val = np.min(self.current_substrate_values[self.current_substrate_values>0],initial=float(self.substrate_set_value.text()))
+            except:
+                # min_pos_val = np.min(self.current_substrate_values[self.current_substrate_values>0])
+                min_pos_val = 0.0
             max_val = max(float(self.substrate_set_value.text()),np.max(self.current_substrate_values))
         if (min_pos_val>0) and ((self.substrate_color_pars[self.substrate_combobox.currentText()]["scale"]=="log") or (self.substrate_color_pars[self.substrate_combobox.currentText()]["scale"]=="auto" and max_val > 100*min_pos_val)):
             self.substrate_plot.set_norm(matplotlib.colors.LogNorm(vmin=min_pos_val, vmax=max_val))

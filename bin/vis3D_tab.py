@@ -37,8 +37,9 @@ from pyMCDS import pyMCDS
 #----------------------------------------------------------------------
 class Vis(VisBase, QWidget):
 
-    def __init__(self, nanohub_flag, config_tab, run_tab, model3D_flag, tensor_flag):
-        super(Vis,self).__init__(nanohub_flag=nanohub_flag, run_tab=run_tab,  config_tab=config_tab, model3D_flag=model3D_flag, tensor_flag=tensor_flag)
+    def __init__(self, studio_flag, rules_flag, nanohub_flag, config_tab, microenv_tab, celldef_tab, user_params_tab, rules_tab, ics_tab, run_tab, model3D_flag, tensor_flag, ecm_flag, galaxy_flag):
+
+        super(Vis,self).__init__(studio_flag=studio_flag, rules_flag=rules_flag,  nanohub_flag=nanohub_flag, config_tab=config_tab, microenv_tab=microenv_tab, celldef_tab=celldef_tab, user_params_tab=user_params_tab, rules_tab=rules_tab, ics_tab=ics_tab, run_tab=run_tab, model3D_flag=model3D_flag,tensor_flag=tensor_flag, ecm_flag=ecm_flag, galaxy_flag=galaxy_flag)
 
         self.figure = None
 
@@ -116,12 +117,13 @@ class Vis(VisBase, QWidget):
         self.lut_substrate_ylorrd_r = self.get_ylorrd_map(True)
 
         # default
-        self.lut_substrate = self.lut_substrate_jet
+        # self.lut_substrate = self.lut_substrate_jet
+        self.lut_substrate = self.lut_substrate_ylorrd
 
         #------------
-        self.lut_cells = self.get_jet_map(False)
+        # self.lut_cells = self.get_jet_map(False)
         self.lut_cells_jet = self.get_jet_map(False)
-        self.lut_cells = self.lut_substrate_jet
+        # self.lut_cells = self.lut_substrate_jet
         self.lut_cells_jet_r = self.get_jet_map(True)
 
         self.lut_cells_viridis = self.get_viridis_map(False)
@@ -131,7 +133,8 @@ class Vis(VisBase, QWidget):
         self.lut_cells_ylorrd_r = self.get_ylorrd_map(True)
 
         # default
-        self.lut_cells = self.lut_cells_jet
+        # self.lut_cells = self.lut_cells_jet
+        self.lut_cells = self.lut_cells_viridis
 
         # -------------  VTK pipeline  --------------
         #------  Setup for the cells (rendered as 3D glyphs (spheres))
@@ -162,6 +165,9 @@ class Vis(VisBase, QWidget):
         self.domain_boundary_actor.SetMapper(self.domain_boundary_mapper)
         self.domain_boundary_actor.GetProperty().SetColor(0, 0, 0)
         self.domain_boundary_actor.GetProperty().SetLineWidth(self.line_width)
+
+
+        self.png_writer = vtkPNGWriter()
 
         #-------------
         self.points = vtkPoints()
@@ -527,22 +533,6 @@ class Vis(VisBase, QWidget):
     #     self.domain_boundary_actor.SetMapper(self.domain_boundary_mapper)
     #     self.domain_boundary_actor.GetProperty().SetColor(0, 0, 0)
 
-    #-------------------------------
-    def disable_physiboss_info(self):
-        print("vis3D_tab: ------- disable_physiboss_info()")
-        if self.physiboss_vis_checkbox is not None:
-            print("vis3D_tab: ------- self.physiboss_vis_checkbox is not None; try disabling")
-            try:
-                self.physiboss_vis_checkbox.setChecked(False)
-                self.physiboss_vis_checkbox.setEnabled(False)
-                self.physiboss_cell_type_combobox.setEnabled(False)
-                self.physiboss_node_combobox.setEnabled(False)
-            except:
-                print("ERROR: Exception disabling physiboss widgets")
-                pass
-        else:
-            print("vis3D_tab: ------- self.physiboss_vis_checkbox is None")
-
     #---------------------------------------
     # Dependent on 2D/3D
     def update_plots(self):
@@ -556,6 +546,30 @@ class Vis(VisBase, QWidget):
 
         # self.canvas.update()
         # self.canvas.draw()
+
+        if self.save_frame:
+            if self.save_frame_filetype != '.png':
+                print(f"\n\n----WARNING----\n\t3D printing not supported for {self.save_frame_filetype} filetype. Using .png instead.\n")
+                self.save_frame_filetype = '.png'
+            self.frame_ind += 1
+            frame_file = os.path.join(self.output_dir, f"frame{self.frame_ind:04d}{self.save_frame_filetype}")
+            print("---->  ", frame_file)
+            windowto_image_filter = vtkWindowToImageFilter()
+            windowto_image_filter.SetInput(self.vtkWidget.GetRenderWindow())
+            windowto_image_filter.SetScale(1)  # image quality
+            # if rgba:
+            if False:
+                windowto_image_filter.SetInputBufferTypeToRGBA()
+            else:
+                windowto_image_filter.SetInputBufferTypeToRGB()
+                # Read from the front buffer.
+                windowto_image_filter.ReadFrontBufferOff()
+                windowto_image_filter.Update()
+
+            self.png_writer.SetFileName(frame_file)
+            self.png_writer.SetInputConnection(windowto_image_filter.GetOutputPort())
+            self.png_writer.Write()
+
         return
 
 
@@ -740,6 +754,39 @@ class Vis(VisBase, QWidget):
         self.sphereSource.SetThetaResolution(self.sphere_res)
         self.update_plots()
 
+    #--------------------------------------
+    def write_cells_csv_cb(self):
+        print("vis3D_tab.py: write_cells_csv_cb")
+
+        xml_file_root = "output%08d.xml" % self.current_frame
+        xml_file = os.path.join(self.output_dir, xml_file_root)
+        print("write_cells_csv_cb(): xml_file= ",xml_file)
+        # xml_file = os.path.join("tmpdir", xml_file_root)  # temporary hack
+
+        # cell_scalar_name = self.cell_scalar_combobox.currentText()
+        if not Path(xml_file).is_file():
+            print("ERROR: file not found",xml_file)
+            return
+
+        mcds = pyMCDS(xml_file_root, self.output_dir, microenv=False, graph=False, verbose=False)
+        # total_min = mcds.get_time()  # warning: can return float that's epsilon from integer value
+    
+        xvals = mcds.get_cell_df()['position_x']
+        # print("len(xvals)=",len(xvals))
+        yvals = mcds.get_cell_df()['position_y']
+        zvals = mcds.get_cell_df()['position_z']
+        cell_types = mcds.get_cell_df()["cell_type"]
+        self.get_cell_types_from_config()
+        print("self.celltype_name=",self.celltype_name)
+        csv_file = open("snap.csv", "w")
+        csv_file.write("x,y,z,type,volume,cycle entry,custom:GFP,custom:sample\n")
+        try:
+            for xv, yv, zv, ct in zip(xvals, yvals, zvals, cell_types):  # DON'T do sequential idx
+                csv_file.write(f'{xv},{yv},{zv},{self.celltype_name[int(ct)]}\n')
+        except:
+            print("\nvis3D_tab.py-------- Error writing snap.csv file")
+        csv_file.close()
+
     # def colorbar_combobox_changed_cb(self,idx):
     #     self.update_plots()
 
@@ -811,6 +858,8 @@ class Vis(VisBase, QWidget):
         print("    choice= ", choice)
         if len(choice) == 0:
             return
+        if choice in self.cell_scalar_human2mcds_dict.keys():
+            choice = self.cell_scalar_human2mcds_dict[choice]
 
         xml_files = glob.glob(self.output_dir+'/output*.xml')  # cross-platform OK?
         # print('xml_files = ',xml_files)
@@ -1557,6 +1606,8 @@ class Vis(VisBase, QWidget):
             cell_scalar_str = self.cell_scalar_combobox.currentText()
             if len(cell_scalar_str) == 0:
                 cell_scalar_str = 'cell_type'
+            if cell_scalar_str in self.cell_scalar_human2mcds_dict.keys():
+                cell_scalar_str = self.cell_scalar_human2mcds_dict[cell_scalar_str]
             # print("\n------- cell_scalar_str= ",cell_scalar_str)
             self.scalar_bar_cells.SetTitle(cell_scalar_str)
             # cell_type = mcds.data['discrete_cells']['data']['cell_type']
@@ -1865,7 +1916,9 @@ class Vis(VisBase, QWidget):
 
 
             # TODO: Hard-coded voxel_size, plus assuming centered at origin!
-            voxel_size = 20   # rwh: fix hard-coded
+            x_voxel_size = mcds.get_mesh_spacing()[0]
+            y_voxel_size = mcds.get_mesh_spacing()[1]
+            z_voxel_size = mcds.get_mesh_spacing()[2]
             # x0 = -(voxel_size * nx) / 2.0
             # y0 = -(voxel_size * ny) / 2.0
             # z0 = -(voxel_size * nz) / 2.0
@@ -1895,7 +1948,7 @@ class Vis(VisBase, QWidget):
                 return
 
             self.substrate_data.SetOrigin( x0, y0, z0 )  # lower-left-front point of domain bounding box
-            self.substrate_data.SetSpacing( voxel_size, voxel_size, voxel_size )
+            self.substrate_data.SetSpacing( x_voxel_size, y_voxel_size, z_voxel_size )
             vmin = 1.e30
             vmax = -vmin
             # for z in range( 0, nz+1 ) :  # if point data, not cell data
