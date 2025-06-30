@@ -1126,6 +1126,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
         os.chdir(self.current_dir)  # just in case we were in /tmpdir (and it crashed/failed, leaving us there)
 
+        if not os.path.exists(self.studio_config_dir, name + ".xml"):
+            return
         self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
         logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
         print(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
@@ -1324,6 +1326,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 logging.debug(f'upload_config_cb(): post- importfile mymodel.xml')
             except:
                 logging.debug(f'upload_config_cb(): failed try: Unable to importfile mymodel.xml')
+                return
 
             logging.debug(f'upload_config_cb(): pre- self.load_model')
             self.load_model("mymodel")
