@@ -154,6 +154,8 @@ class PhysiCellXMLCreator(QWidget):
             try:
                 tool_dir = os.environ['TOOLPATH']
                 dataDirectory = os.path.join(tool_dir,'data')
+
+                self.nanohub_session_dir = os.environ.get('SESSIONDIR')
             except:
                 binDirectory = os.path.dirname(os.path.abspath(__file__))
                 dataDirectory = os.path.join(binDirectory,'..','data')
@@ -186,14 +188,15 @@ class PhysiCellXMLCreator(QWidget):
         print("self.current_dir = ",self.current_dir)
         logging.debug(f'self.current_dir = {self.current_dir}')
 
-        if config_file:   # user specified config file on command line with "-c" arg
-            self.current_xml_file = os.path.join(self.current_dir, config_file)
-            print("got config_file=",config_file)
-        else:
-            self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
-            if not Path(self.current_xml_file).is_file():
-                print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
-                sys.exit(1)
+        if not self.nanohub_flag:
+            if config_file:   # user specified config file on command line with "-c" arg
+                self.current_xml_file = os.path.join(self.current_dir, config_file)
+                print("got config_file=",config_file)
+            else:
+                self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
+                if not Path(self.current_xml_file).is_file():
+                    print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
+                    sys.exit(1)
 
         # if not self.nanohub_flag:
         #     if config_file:   # user specified config file on command line with "-c" arg
@@ -235,8 +238,25 @@ class PhysiCellXMLCreator(QWidget):
             self.current_xml_file = os.path.join(self.current_dir, config_file)
             print("got config_file=",config_file)
             # sys.exit()
+        else:
+            if self.nanohub_flag:
+                # model_name = "interactions"  # for testing latest xml
+                # model_name = "rules"
+                model_name = "template"
 
+                #------- copy the empty rules.csv needed for template
+                tool_dir = os.environ['TOOLPATH']  # rwh: Beware! this is read-only
+                self.home_dir = os.getcwd()
+                rules_file0 = os.path.join(tool_dir,'data',"rules_empty.csv")
+                # for template
+                rules_file1 = os.path.join(self.home_dir,"rules.csv")
+                shutil.copy(rules_file0, rules_file1)
 
+                # for biorobots
+                # rules_file1 = os.path.join(self.home_dir,"bots_rules.csv")
+                # shutil.copy(rules_file0, rules_file1)
+
+            self.current_xml_file = os.path.join(self.studio_config_dir, model_name + ".xml")
 
         # NOTE! We operate *directly* on a default .xml file, not a copy.
         self.setWindowTitle(self.title_prefix + self.current_xml_file)
@@ -1159,7 +1179,9 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         msgBox.setStandardButtons(QMessageBox.Ok)
         msgBox.exec_()
 
+    # ------- nanoHUB related function!
     def load_model(self,name):
+        logging.debug(f'studio.py: ---- entered load_model()')
         if self.studio_flag:
             self.run_tab.cancel_model_cb()  # if a sim is already running, cancel it
             self.vis_tab.physiboss_vis_checkbox = None    # default: assume a non-boolean intracellular model
@@ -1172,12 +1194,15 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
         if not Path(self.studio_config_dir + name + ".xml").is_file():
             return
-        self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
-        logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
-        print(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
 
-        logging.debug(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
-        print(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
+        self.current_xml_file = os.path.join(self.nanohub_session_dir, name + ".xml")
+
+        # self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
+        # logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
+        # print(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
+
+        # logging.debug(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
+        # print(f'studio.py: load_model(): {self.xml_root.find(".//cell_definitions//cell_rules")}')
 
         # if self.xml_root.find(".//cell_definitions//cell_rules"):
         # self.current_save_file = current_xml_file
