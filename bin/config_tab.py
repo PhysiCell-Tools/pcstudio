@@ -331,7 +331,11 @@ class Config(StudioTab):
         hbox.addLayout(vbox_temp)
 
         self.random_seed_gp = QButtonGroup()
-        self.random_seed_gp.idToggled.connect(self.random_seed_gp_cb)
+        try:
+            self.random_seed_gp.idToggled.connect(self.random_seed_gp_cb)
+        except:
+            self.random_seed_gp.buttonClicked.connect(self.random_seed_gp_cb)
+
         random_seed_gp_next_id = 0
 
         self.random_seed_random_button = QRadioButton_custom("system clock")
