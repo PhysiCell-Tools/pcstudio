@@ -22,7 +22,11 @@ from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 from matplotlib.collections import PatchCollection
 import matplotlib.colors as mplc
-from matplotlib import gridspec, colormaps
+from matplotlib import gridspec
+try:
+    from matplotlib import colormaps
+except:
+    import matplotlib.cm as cm   # for nanohub :/
 from collections import deque
 import glob
 
