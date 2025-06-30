@@ -2623,6 +2623,7 @@ class ICs(QWidget):
                     if float(self.substrate_set_value.text()) < min_pos_val:
                         min_pos_val = float(self.substrate_set_value.text())
                 except:
+                    min_pos_val = 0
                     pass
             max_val = max(float(self.substrate_set_value.text()),np.max(self.current_substrate_values))
         if (min_pos_val>0) and ((self.substrate_color_pars[self.substrate_combobox.currentText()]["scale"]=="log") or (self.substrate_color_pars[self.substrate_combobox.currentText()]["scale"]=="auto" and max_val > 100*min_pos_val)):
