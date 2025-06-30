@@ -398,7 +398,7 @@ class Config(StudioTab):
         try:
             self.svg_interval.textChanged.connect(self.svg_interval_changed)
         except:
-            self.svg_interval.valueChanged.connect(self.svg_interval_changed)
+            self.svg_interval.valueChanged.connect(str(self.svg_interval_changed))
         self.svg_interval.setStyleSheet(style_sheet_template(QLineEdit))
         hbox.addWidget(self.svg_interval)
 
@@ -415,7 +415,10 @@ class Config(StudioTab):
         self.full_interval = QLineEdit()
         self.full_interval.setFixedWidth(100)
         self.full_interval.setValidator(QtGui.QDoubleValidator())
-        self.full_interval.textChanged.connect(self.full_interval_changed)
+        try:
+            self.full_interval.textChanged.connect(self.full_interval_changed)
+        except:
+            self.full_interval.valueChanged.connect(str(self.full_interval_changed))
         self.full_interval.setStyleSheet(style_sheet_template(QLineEdit))
         hbox.addWidget(self.full_interval)
 
