@@ -195,7 +195,10 @@ class Config(StudioTab):
 
         self.day_spin_box.setSuffix(" d")
         self.day_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.day_spin_box.textChanged.connect(self.day_value_changed_str)
+        try:
+            self.day_spin_box.textChanged.connect(self.day_value_changed_str)
+        except:
+            self.day_spin_box.valueChanged.connect(self.svg_interval_changed)
 
         self.config_tab_layout.addWidget(self.day_spin_box,idx_row,3,1,1)
 
@@ -206,7 +209,10 @@ class Config(StudioTab):
 
         self.hour_spin_box.setSuffix(" h")
         self.hour_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
+        try:
+            self.hour_spin_box.textChanged.connect(self.hour_value_changed_str)
+        except:
+            self.hour_spin_box.valueChanged.connect(self.hour_value_changed_str)
 
         self.config_tab_layout.addWidget(self.hour_spin_box,idx_row,4,1,1)
 
@@ -217,7 +223,10 @@ class Config(StudioTab):
 
         self.minute_spin_box.setSuffix(" min")
         self.minute_spin_box.setSingleStep(1)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.minute_spin_box.textChanged.connect(self.minute_value_changed_str)
+        try:
+            self.minute_spin_box.textChanged.connect(self.minute_value_changed_str)
+        except:
+            self.minute_spin_box.valueChanged.connect(self.minute_value_changed_str)
 
         self.config_tab_layout.addWidget(self.minute_spin_box,idx_row,5,1,1)
 
@@ -230,7 +239,10 @@ class Config(StudioTab):
 
         self.minute_fraction_spin_box.setSuffix(" min")
         self.minute_fraction_spin_box.setSingleStep(0.01)  # Or e.g. 0.5 for QDoubleSpinBox
-        self.minute_fraction_spin_box.textChanged.connect(self.minute_fraction_value_changed_str)
+        try:
+            self.minute_fraction_spin_box.textChanged.connect(self.minute_fraction_value_changed_str)
+        except:
+            self.minute_fraction_spin_box.valueChanged.connect(self.minute_fraction_value_changed_str)
 
         self.config_tab_layout.addWidget(self.minute_fraction_spin_box,idx_row,6,1,1)
 
@@ -379,7 +391,10 @@ class Config(StudioTab):
         self.svg_interval = QLineEdit()
         self.svg_interval.setFixedWidth(100)
         self.svg_interval.setValidator(QtGui.QDoubleValidator())
-        self.svg_interval.textChanged.connect(self.svg_interval_changed)
+        try:
+            self.svg_interval.textChanged.connect(self.svg_interval_changed)
+        except:
+            self.svg_interval.valueChanged.connect(self.svg_interval_changed)
         self.svg_interval.setStyleSheet(style_sheet_template(QLineEdit))
         hbox.addWidget(self.svg_interval)
 
