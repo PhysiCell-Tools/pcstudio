@@ -668,7 +668,8 @@ class Config(StudioTab):
 
     def svg_interval_changed(self, val):
         if self.sync_output:
-            self.full_interval.setText(val)
+            # self.full_interval.setText(val)
+            self.full_interval.setText(str(val))
 
     def svg_substrate_min_changed(self, val):
         if self.sync_output:
@@ -683,7 +684,8 @@ class Config(StudioTab):
 
     def full_interval_changed(self, val):
         if self.sync_output:
-            self.svg_interval.setText(val)
+            # self.svg_interval.setText(val)
+            self.svg_interval.setText(str(val))
 
 
     def sync_clicked(self, bval):
