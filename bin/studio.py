@@ -186,24 +186,24 @@ class PhysiCellXMLCreator(QWidget):
         print("self.current_dir = ",self.current_dir)
         logging.debug(f'self.current_dir = {self.current_dir}')
 
-        # if config_file:   # user specified config file on command line with "-c" arg
-        #     self.current_xml_file = os.path.join(self.current_dir, config_file)
-        #     print("got config_file=",config_file)
-        # else:
-        #     self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
-        #     if not Path(self.current_xml_file).is_file():
-        #         print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
-        #         sys.exit(1)
+        if config_file:   # user specified config file on command line with "-c" arg
+            self.current_xml_file = os.path.join(self.current_dir, config_file)
+            print("got config_file=",config_file)
+        else:
+            self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
+            if not Path(self.current_xml_file).is_file():
+                print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
+                sys.exit(1)
 
-        if not self.nanohub_flag:
-            if config_file:   # user specified config file on command line with "-c" arg
-                self.current_xml_file = os.path.join(self.current_dir, config_file)
-                print("got config_file=",config_file)
-            else:
-                self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
-                if not Path(self.current_xml_file).is_file():
-                    print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
-                    sys.exit(1)
+        # if not self.nanohub_flag:
+        #     if config_file:   # user specified config file on command line with "-c" arg
+        #         self.current_xml_file = os.path.join(self.current_dir, config_file)
+        #         print("got config_file=",config_file)
+        #     else:
+        #         self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
+        #         if not Path(self.current_xml_file).is_file():
+        #             print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
+        #             sys.exit(1)
 
         # rwh: Sep 2024
         self.studio_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
