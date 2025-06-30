@@ -37,7 +37,11 @@ from PyQt5.QtGui import QRegExpValidator
 
 from studio_classes import QHLine, DoubleValidatorWidgetBounded, HoverQuestion, QLineEdit_custom, QCheckBox_custom
 from studio_functions import style_sheet_template
-from biwt_tab import BioinformaticsWalkthrough
+try:
+    from biwt_tab import BioinformaticsWalkthrough 
+except:
+    print("----- Exception trying to import BioinformaticsWalkthrough")
+    pass
 
 import numpy as np
 import matplotlib
