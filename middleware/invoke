@@ -1,3 +1,3 @@
 #!/bin/sh
 
-/usr/bin/invoke_app "$@" -C "python @tool/bin/studio.py --nanohub -c config.xml" -t pcstudio -e TOOLPATH=@tool -e PYTHONNOUSERSITE=yes -u anaconda3-5.1
+/usr/bin/invoke_app "$@" -C "python @tool/bin/studio.py --nanohub " -t pcstudio -e TOOLPATH=@tool -e PYTHONNOUSERSITE=yes -u anaconda3-5.1
