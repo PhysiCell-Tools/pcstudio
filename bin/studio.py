@@ -140,9 +140,7 @@ class PhysiCellXMLCreator(QWidget):
         print(f"  platform.system().lower()={platform.system().lower()}, platform.machine()={platform.machine()}")
         # print("PhysiCellXMLCreator(): self.dark_mode= ",self.dark_mode)
 
-        self.title_prefix = "PhysiCell Model Builder: "
-        if studio_flag:
-            self.title_prefix = "PhysiCell Studio: "
+        self.title_prefix = "PhysiCell Studio: "
 
         self.vis2D_gouraud = False
 
@@ -151,6 +149,7 @@ class PhysiCellXMLCreator(QWidget):
             if "home/nanohub" in os.environ['HOME']:
                 self.nanohub_flag = True
 
+        self.nanohub_session_dir = '.'
         if self.nanohub_flag:
             try:
                 tool_dir = os.environ['TOOLPATH']
@@ -159,8 +158,11 @@ class PhysiCellXMLCreator(QWidget):
                 binDirectory = os.path.dirname(os.path.abspath(__file__))
                 dataDirectory = os.path.join(binDirectory,'..','data')
                 print("-------- dataDirectory (relative) =",dataDirectory)
+
             self.absolute_data_dir = os.path.abspath(dataDirectory)
             print("-------- absolute_data_dir =",self.absolute_data_dir)
+            logging.debug(f'---studio.py: self.absolute_data_dir={self.absolute_data_dir}\n')
+            logging.debug(f'---studio.py: self.nanohub_session_dir ={self.nanohub_session_dir}\n')
 
             # NOTE: if your C++ needs to also have an absolute path to data dir, do so via an env var
             # os.environ['KIDNEY_DATA_PATH'] = self.absolute_data_dir
@@ -184,14 +186,56 @@ class PhysiCellXMLCreator(QWidget):
         print("self.current_dir = ",self.current_dir)
         logging.debug(f'self.current_dir = {self.current_dir}')
 
-        if config_file:   # user specified config file on command line with "-c" arg
+        # if config_file:   # user specified config file on command line with "-c" arg
+        #     self.current_xml_file = os.path.join(self.current_dir, config_file)
+        #     print("got config_file=",config_file)
+        # else:
+        #     self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
+        #     if not Path(self.current_xml_file).is_file():
+        #         print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
+        #         sys.exit(1)
+
+        if not self.nanohub_flag:
+            if config_file:   # user specified config file on command line with "-c" arg
+                self.current_xml_file = os.path.join(self.current_dir, config_file)
+                print("got config_file=",config_file)
+            else:
+                self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
+                if not Path(self.current_xml_file).is_file():
+                    print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
+                    sys.exit(1)
+
+        # rwh: Sep 2024
+        self.studio_root_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+        if self.nanohub_flag:
+            # self.studio_data_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+            self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        else:
+            self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))
+        print("self.studio_root_dir = ",self.studio_root_dir)
+        logging.debug(f'self.studio_root_dir = {self.studio_root_dir}')
+
+        # assume running from a PhysiCell root dir, but change if not
+        self.config_dir = os.path.realpath(os.path.join('.', 'config'))
+
+        if self.current_dir == self.studio_root_dir:  # are we running from studio root dir?
+            # self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+            self.config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))
+            # self.debug_tab.add_msg("--- studio.py: self.current_dir (#2)= ",self.current_dir )
+        print(f'self.config_dir =  {self.config_dir}')
+        logging.debug(f'self.config_dir = {self.config_dir}')
+
+        # self.studio_config_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        # print("studio.py: self.studio_config_dir = ",self.studio_config_dir)
+        # sys.exit(1)
+
+        self.home_dir = os.getcwd()  # rwh: 2/19/25
+
+        if config_file:
             self.current_xml_file = os.path.join(self.current_dir, config_file)
             print("got config_file=",config_file)
-        else:
-            self.current_xml_file = os.path.join(self.current_dir, 'config', 'PhysiCell_settings.xml')
-            if not Path(self.current_xml_file).is_file():
-                print("\n\nError: A default config/PhysiCell_settings.xml does not exist\n and you did not specify a config file using the '-c' argument.\n")
-                sys.exit(1)
+            # sys.exit()
+
 
 
         # NOTE! We operate *directly* on a default .xml file, not a copy.
@@ -1126,7 +1170,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
         os.chdir(self.current_dir)  # just in case we were in /tmpdir (and it crashed/failed, leaving us there)
 
-        if not os.path.exists(self.studio_config_dir, name + ".xml"):
+        if not Path(self.studio_config_dir + name + ".xml").is_file():
             return
         self.current_xml_file = os.path.join(self.studio_config_dir, name + ".xml")
         logging.debug(f'studio.py: load_model(): self.current_xml_file= {self.current_xml_file}')
