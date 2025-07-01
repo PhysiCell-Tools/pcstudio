@@ -169,7 +169,7 @@ class RunModel(StudioTab):
                 # remove any previous data
                 # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
                 if self.xml_creator.nanohub_flag:
-                    os.chdir(self.home_dir)  # session root dir on nanoHUB (not /tmpdir)
+                    os.chdir(self.xml_creator.home_dir)  # session root dir on nanoHUB (not /tmpdir)
                     os.system('rm -rf tmpdir*')
                     time.sleep(2)
                     if os.path.isdir('tmpdir'):
@@ -178,7 +178,7 @@ class RunModel(StudioTab):
                             tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
                             shutil.move('tmpdir', tname)
                         except:
-                                                                                    logging.debug(f'====run_model_cb():  self.home_dir={self.home_dir}' )
+                            logging.debug(f'====run_model_cb():  self.home_dir={self.xml_creator.home_dir}' )
                     try:
                         os.makedirs('tmpdir')
                     except:
