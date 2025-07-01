@@ -57,7 +57,7 @@ class RunModel(StudioTab):
         # self.tree = None
 
         self.output_dir = 'output'
-        if self.nanohub_flag:
+        if self.xml_creator.nanohub_flag:
             self.output_dir = 'tmpdir'
 
         #-----
