@@ -52,6 +52,7 @@ from settings import StudioSettings
 # from legend_tab import Legend 
 
 from galaxy_history import GalaxyHistoryWindow
+from dir_info import DirDebugWindow
 try:
     from galaxy_ie_helpers import put, find_matching_history_ids, get
 except:
@@ -583,6 +584,12 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
         self.studio_settings.hide()
         self.studio_settings.show()
 
+    def dir_debug_cb(self):
+        self.dir_debugUI = DirDebugWindow()
+        # hack to bring to foreground
+        self.dir_debugUI.hide()
+        self.dir_debugUI.show()
+
     def enablePlotTab(self, bval):
         # self.tabWidget.setTabEnabled(5, bval)
         self.tabWidget.setTabEnabled(self.plot_tab_index, bval)
@@ -638,6 +645,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             # model_menu.addAction("biorobots", self.biorobots_cb)
             # model_menu.addAction("tumor_immune", self.tumor_immune_cb)
 
+            file_menu.addAction("dir debug", self.dir_debug_cb)
             file_menu.addAction("Open (upload) mymodel.xml", self.upload_config_cb)
             file_menu.addAction("Open (upload) myrules.csv", self.upload_rules_cb)
             file_menu.addAction("Open (upload) mycells.csv", self.upload_cells_cb)
