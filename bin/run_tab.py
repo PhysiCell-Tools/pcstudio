@@ -57,6 +57,8 @@ class RunModel(StudioTab):
         # self.tree = None
 
         self.output_dir = 'output'
+        if self.nanohub_flag:
+            self.output_dir = 'tmpdir'
 
         #-----
         self.sim_output = QWidget()
@@ -219,7 +221,7 @@ class RunModel(StudioTab):
             auto_load_params = True
             # if auto_load_params:
 
-            if self.vis_tab:
+            if self.xml_creator.vis_tab:
                 self.xml_creator.vis_tab.reset_domain_box()
                 # self.xml_creator.vis_tab.reset_axes()
                 self.xml_creator.vis_tab.reset_model_flag = True

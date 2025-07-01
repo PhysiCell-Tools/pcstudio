@@ -1395,6 +1395,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                 logging.debug(f'upload_config_cb(): post- importfile mymodel.xml')
             except:
                 logging.debug(f'upload_config_cb(): failed try: Unable to importfile mymodel.xml')
+                self.show_error_message(f"Exec file {exec_file} does not exist.")
                 return
 
             logging.debug(f'upload_config_cb(): pre- self.load_model')
@@ -1436,11 +1437,11 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.readyReadStandardError.connect(self.handle_stderr)
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
-                    self.p.start("exportfile config.xml")
+                    self.p.start("exportfile tmpdir/config.xml")
                 else:
                     self.debug_tab.add_msg("   self.p is NOT None; just return!")
             except:
-                self.message("Unable to download config.xml")
+                self.show_info_message("Unable to download config.xml")
                 print("Unable to download config.xml")
                 self.p = None
         return
@@ -1455,11 +1456,11 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
-                    self.p.start("exportfile rules.csv")
+                    self.p.start("exportfile tmpdir/rules.csv")
                 else:
                     self.debug_tab.add_msg(" download_rules_cb():  self.p is NOT None; just return!")
             except:
-                self.message("Unable to download rules.csv")
+                self.show_info_message("Unable to download rules.csv")
                 print("Unable to download rules.csv")
                 self.p = None
         return
@@ -1475,7 +1476,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
                     # file_str = os.path.join(self.output_dir, '*.svg')
-                    file_str = "*"  # cwd is tmpdir
+                    file_str = os.path.join('tmpdir', '*')
                     print('-------- download_output_cb): zip up all ',file_str)
                     with zipfile.ZipFile('pcstudio_output.zip', 'w') as myzip:
                         for f in glob.glob(file_str):
@@ -1485,7 +1486,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     # self.debug_tab.add_msg(" download_svg_cb():  self.p is NOT None; just return!")
                     print(" download_output_cb():  self.p is NOT None; just return!")
             except:
-                self.message("Unable to download pcstudio_output.zip")
+                self.show_info_message("Unable to download pcstudio_output.zip")
                 print("Unable to download pcstudio_output.zip")
                 self.p = None
         return
@@ -1507,7 +1508,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
                     logging.debug(f'download_csv_cb(): before files_str()')
-                    files_str = os.path.join('.','*.csv')
+                    files_str = os.path.join('tmpdir','*.csv')
                     logging.debug(f'download_csv_b(): files_str={files_str}')
                     # files_l = glob.glob(files_str)
                     # logging.debug(f'download_csv_b(): files_l={files_l}')
@@ -1532,6 +1533,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
             except:
                 # self.debug_tab.add_msg("   Error: exception occurred")
                 # print("   download_csv_cb(): Error: exception occurred")
+                self.show_info_message("Unable to download csv.zip")
                 logging.debug(f'download_csv_cb(): failed try: Unable to exportfile csv.zip')
                 self.p = None
 
