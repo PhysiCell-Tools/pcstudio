@@ -169,19 +169,34 @@ class RunModel(StudioTab):
                 # remove any previous data
                 # NOTE: this dir name needs to match the <folder>  in /data/<config_file.xml>
                 if self.xml_creator.nanohub_flag:
+                    os.chdir(self.home_dir)  # session root dir on nanoHUB (not /tmpdir)
                     os.system('rm -rf tmpdir*')
-                    time.sleep(1)
+                    time.sleep(2)
                     if os.path.isdir('tmpdir'):
                         # something on NFS causing issues...
-                        tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
-                        shutil.move('tmpdir', tname)
-                    os.makedirs('tmpdir')
+                        try:
+                            tname = tempfile.mkdtemp(suffix='.bak', prefix='tmpdir_', dir='.')
+                            shutil.move('tmpdir', tname)
+                        except:
+                                                                                    logging.debug(f'====run_model_cb():  self.home_dir={self.home_dir}' )
+                    try:
+                        os.makedirs('tmpdir')
+                    except:
+                        logging.debug(f'====run_model_cb():  exception doing os.makedirs("tmpdir")')
 
                     # write the default config file to tmpdir
                     # new_config_file = "tmpdir/config.xml"  # use Path; work on Windows?
                     tdir = os.path.abspath('tmpdir')
-                    new_config_file = Path(tdir,"config.xml")
-                    self.output_dir = '.'
+                    # new_config_file = Path(tdir,"config.xml")
+                    new_config_file = "config.xml"
+                    self.output_dir = 'tmpdir'
+                    self.config_xml_name.setText('config.xml')
+
+                    # rwh Feb 2025 - unsure if want/need PhysiCell_settings.xml in output dir
+                    default_config_file = os.path.join(self.output_dir,"PhysiCell_settings.xml")
+                    abs_default_config_file = os.path.abspath(default_config_file )
+                    print(f"run_tab.py:  also copy to {abs_default_config_file }")
+                    shutil.copy(self.config_file, default_config_file)
                 else:
                     self.output_dir = self.xml_creator.config_tab.folder.text()
                     os.system('rm -rf ' + self.output_dir)
@@ -201,19 +216,22 @@ class RunModel(StudioTab):
                 # logging.debug(f'run_tab.py: ----> writing modified model to {self.config_file}')
                 # print("run_tab.py: ----> new_config_file = ",new_config_file)
                 # print("run_tab.py: ----> self.config_file = ",self.config_file)
-                self.xml_creator.tree.write(self.config_file)
-                # print("run_tab.py: ----> here 5")
-                pretty_print(self.config_file, self.config_file)
+                if self.xml_creator.nanohub_flag:
+                    self.xml_creator.tree.write(new_config_file)  # saves modified XML to config.xml (NOT tmpdir/config.xml)
+                else:
+                    self.xml_creator.tree.write(self.config_file)
+                    # print("run_tab.py: ----> here 5")
+                    pretty_print(self.config_file, self.config_file)
 
-                default_config_file = os.path.join(self.output_dir,"PhysiCell_settings.xml")
-                abs_default_config_file = os.path.abspath(default_config_file )
-                print(f"run_tab.py:  also copy to {abs_default_config_file }")
-                shutil.copy(self.config_file, default_config_file)
+                    default_config_file = os.path.join(self.output_dir,"PhysiCell_settings.xml")
+                    abs_default_config_file = os.path.abspath(default_config_file )
+                    print(f"run_tab.py:  also copy to {abs_default_config_file }")
+                    shutil.copy(self.config_file, default_config_file)
 
                 # nanoHUB: Operate from tmpdir. XML: <folder>,</folder>; temporary output goes here.  May be copied to cache later.
-                if self.xml_creator.nanohub_flag:
-                    tdir = os.path.abspath('tmpdir')
-                    os.chdir(tdir)   # run exec from here on nanoHUB
+                # if self.xml_creator.nanohub_flag:
+                    # tdir = os.path.abspath('tmpdir')
+                    # os.chdir(tdir)   # run exec from here on nanoHUB
                 # sub.update(tdir)
                 # subprocess.Popen(["../bin/myproj", "config.xml"])
 
