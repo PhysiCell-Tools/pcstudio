@@ -1446,7 +1446,8 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.readyReadStandardError.connect(self.handle_stderr)
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
-                    self.p.start("exportfile tmpdir/config.xml")
+                    # self.p.start("exportfile tmpdir/config.xml")
+                    self.p.start("exportfile config.xml")
                 else:
                     self.debug_tab.add_msg("   self.p is NOT None; just return!")
             except:
@@ -1465,7 +1466,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
                     self.p.stateChanged.connect(self.handle_state)
                     self.p.finished.connect(self.process_finished)  # Clean up once complete.
 
-                    self.p.start("exportfile tmpdir/rules.csv")
+                    self.p.start("exportfile rules.csv")
                 else:
                     self.debug_tab.add_msg(" download_rules_cb():  self.p is NOT None; just return!")
             except:
@@ -1518,6 +1519,7 @@ PhysiCell Studio is provided "AS IS" without warranty of any kind. &nbsp; In no 
 
                     logging.debug(f'download_csv_cb(): before files_str()')
                     files_str = os.path.join('tmpdir','*.csv')
+                    files_str = '*.csv'
                     logging.debug(f'download_csv_b(): files_str={files_str}')
                     # files_l = glob.glob(files_str)
                     # logging.debug(f'download_csv_b(): files_l={files_l}')
