@@ -198,7 +198,7 @@ class Config(StudioTab):
         try:
             self.day_spin_box.textChanged.connect(self.day_value_changed_str)
         except:
-            self.day_spin_box.valueChanged.connect(self.svg_interval_changed)
+            self.day_spin_box.valueChanged.connect(self.day_value_changed_str)
 
         self.config_tab_layout.addWidget(self.day_spin_box,idx_row,3,1,1)
 
