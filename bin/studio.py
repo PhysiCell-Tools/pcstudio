@@ -439,7 +439,8 @@ class PhysiCellXMLCreator(QWidget):
                 self.run_tab.exec_name.setText(os.path.join(self.homedir, exec_file))
             else:
                 # self.run_tab.exec_name.setText(os.path.join(self.homedir, "bin", exec_file))
-                self.run_tab.exec_name.setText(os.path.join(exec_file))
+                # self.run_tab.exec_name.setText(os.path.join(exec_file))
+                self.run_tab.exec_name.setText("/apps/pcstudio/dev/bin/project")  # 7/2/25 - rwh hack, argh!
 
             self.run_tab.config_xml_name.setText(self.current_xml_file)
             # self.current_dir = os.getcwd()
